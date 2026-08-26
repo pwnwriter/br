@@ -1,0 +1,9 @@
+{
+  "name": "br",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "fmt:ts": "bunx prettier --write \"worker/**/*.ts\"",
+    "fmt:ts:check": "bunx prettier --check \"worker/**/*.ts\""
+  }
+}

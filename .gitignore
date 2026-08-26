@@ -1,0 +1,7 @@
+.direnv
+.tools
+.zig-cache
+zig-out
+result
+.DS_Store
+br-screenshot.png
