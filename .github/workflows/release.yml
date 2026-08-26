@@ -1,0 +1,53 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/determinate-nix-action@v3
+
+      - name: Build binaries
+        run: |
+          set -euo pipefail
+          targets="x86_64-linux-musl aarch64-linux-musl x86_64-macos aarch64-macos"
+          version="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          for target in $targets; do
+            echo "::group::build $target"
+            nix develop --command zig build -Dtarget="$target" -Doptimize=ReleaseSafe
+            stage="br-${version}-${target}"
+            rm -rf "$stage"
+            mkdir -p "$stage"
+            cp zig-out/bin/br "$stage/br"
+            cp -R worker "$stage/worker"
+            cp README.md LICENSE "$stage/"
+            tar -czf "dist/${stage}.tar.gz" "$stage"
+            echo "::endgroup::"
+          done
+          (cd dist && sha256sum *.tar.gz > SHA256SUMS)
+          ls -l dist
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: br-binaries
+          path: dist/*
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/SHA256SUMS
+          generate_release_notes: true
