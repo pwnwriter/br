@@ -38,12 +38,68 @@ browser  →  snapshot  →  @refs  →  actions
 - **Batch-native.** Multi-step flows run as JSONL in one shot, so agents do more with less back-and-forth.
 - **Visual when you want it.** `br view` and `br live` render the real page inline via the Kitty graphics protocol.
 
+## Usage
+
+> **If it renders in a browser, `br` turns it into commands — same page, whether you're an agent, a human, or hunting bugs.**
+
+### 🤖 As an AI agent
+
+Give your agent a browser without drowning it in DOM. It reads a compact snapshot, acts on `@refs`, and branches on exit codes — no Playwright, no flaky selectors, no 50k-token HTML dumps.
+
+```bash
+br batch <<'JSONL'
+{"command":"open","url":"https://app.example.com/login"}
+{"command":"snapshot","compact":true}
+{"command":"fill","target":"@2","text":"user@example.com"}
+{"command":"fill","target":"@3","text":"hunter2"}
+{"command":"click","target":"@4"}
+{"command":"snapshot","compact":true}
+JSONL
+```
+
+One JSON line in, one out. Stable handles, deterministic exit codes (`STALE_REF`, `TIMEOUT`, …), and `--json` on everything — everything an agent needs to loop reliably.
+
+### 🧑‍💻 As a human
+
+A browser you can pipe. Inspect a page, fill a form, grab a screenshot, or read it inline — without leaving the terminal or writing a script.
+
+```bash
+br open https://news.ycombinator.com
+br snap --compact            # scan the interactive elements
+br find "login"              # locate a control by text
+br screenshot shot.png       # grab evidence
+br view                      # render the viewport inline (Kitty graphics)
+br live https://github.com   # full interactive terminal browser
+```
+
+Great for quick checks, demos, scraping one page, or driving a site from a shell script.
+
+### 🛡️ For bug bounty & recon
+
+A scriptable, headful browser is a fast triage tool — map inputs, read client-side state, and run JS in page context, all pipeable into your recon pipeline. **On targets you're authorized to test.**
+
+```bash
+br --profile target open https://app.example.com/account
+br snap                                              # every interactive element + its attrs
+br eval 'document.cookie'                            # inspect session/CSRF state
+br eval '[...document.querySelectorAll("input[type=hidden]")].map(i => [i.name, i.value])'
+br attr @5 href                                      # pull hrefs, tokens, data-* attrs
+br cookies                                           # dump cookies
+br console                                            # surface client-side JS errors
+br --backend chrome cdp Network.enable               # Chrome DevTools Protocol (Chromium only)
+br screenshot finding.png                            # capture proof for the report
+```
+
+Keep separate authenticated contexts with `--profile`, script repeatable checks across params/endpoints with `batch`, and drive it all from the same tools as the rest of your recon.
+
+> `cdp` needs the Chromium backend — pick it per command with `--backend chrome` (the default `webkit` backend has no CDP). See [Backends](#backends).
+
 ## Install
 
 You'll need:
 
 - **Zig** 0.16+
-- **Bun** 1.4+ (with `Bun.WebView` — macOS WebKit today; other backends are experimental)
+- **Bun** 1.4+ (with `Bun.WebView` — WebKit by default, Chromium via `--backend chrome`)
 
 ```bash
 # with Nix (recommended)
@@ -89,7 +145,7 @@ For anything multi-step, prefer `batch` — one JSON object in per line, one out
 br batch <<'JSONL'
 {"command":"open","url":"https://example.com"}
 {"command":"snapshot","compact":true}
-{"command":"click","target":"@4"}
+{"command":"click","target":"@1"}
 {"command":"snapshot","compact":true}
 JSONL
 ```
@@ -153,6 +209,22 @@ br --profile github open https://github.com
 ```
 
 Session and profile names are limited to `[A-Za-z0-9_.-]`.
+
+## Backends
+
+`Bun.WebView` can drive more than one engine. Pick one per command with `--backend`:
+
+```bash
+br --backend chrome open https://example.com   # Chromium
+br --backend webkit open https://example.com   # WebKit (default)
+```
+
+| Backend | Notes |
+| --- | --- |
+| `webkit` | Default. Available everywhere `Bun.WebView` is (macOS WebKit today). |
+| `chrome` | Chromium engine — required for `cdp` (Chrome DevTools Protocol). |
+
+The backend is fixed when a session's browser is first created, so set it on your first command in that session (e.g. the `open`).
 
 ## How it works
 

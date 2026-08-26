@@ -17,6 +17,7 @@ async function send(socketPath: string, line: string) {
 if (Bun.argv[2] === "--batch") {
   const socketPath = Bun.argv[3];
   const session = Bun.argv[4] || "default";
+  let seq = 0;
   for await (const chunk of Bun.stdin.stream()) {
     const text = Buffer.from(chunk).toString("utf8");
     for (const line of text.split("\n")) {
@@ -24,7 +25,9 @@ if (Bun.argv[2] === "--batch") {
       const obj = JSON.parse(line);
       const req = {
         version: 1,
-        id: obj.id || Date.now(),
+        // Monotonic per-line id: Date.now() collides when lines run inside the
+        // same millisecond, making responses impossible to correlate.
+        id: typeof obj.id === "number" ? obj.id : ++seq,
         session: obj.session || session,
         method: obj.command || obj.method,
         params: { ...obj, json: true },

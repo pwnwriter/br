@@ -4,7 +4,7 @@ const session = @import("session.zig");
 
 pub const Mode = enum { request, batch, live, session_list, session_close, session_close_all, daemon_status, daemon_stop, daemon_run, help, version };
 
-const GlobalOption = enum { json, session, profile, help, version };
+const GlobalOption = enum { json, session, profile, backend, help, version };
 const RequestOption = enum { compact, format, quality };
 const Command = enum {
     batch,
@@ -61,6 +61,7 @@ pub fn parse(allocator: std.mem.Allocator, args: []const []const u8) !Parsed {
             .session => parsed.request.session = try readGlobalValue(args, &i),
             .profile => parsed.request.profile_dir =
                 try session.profileDir(allocator, try readGlobalValue(args, &i)),
+            .backend => parsed.request.backend = try readGlobalValue(args, &i),
             .help => {
                 parsed.mode = .help;
                 return parsed;
@@ -242,6 +243,7 @@ fn parseGlobalOption(arg: []const u8) ?GlobalOption {
     if (std.mem.eql(u8, arg, "--json")) return .json;
     if (std.mem.eql(u8, arg, "--session")) return .session;
     if (std.mem.eql(u8, arg, "--profile")) return .profile;
+    if (std.mem.eql(u8, arg, "--backend")) return .backend;
     if (std.mem.eql(u8, arg, "--help") or std.mem.eql(u8, arg, "-h")) return .help;
     if (std.mem.eql(u8, arg, "--version")) return .version;
     return null;
@@ -298,7 +300,7 @@ pub const help =
     \\br - browser CLI built for agents
     \\
     \\Usage:
-    \\  br [--json] [--session name] [--profile name] <command>
+    \\  br [--json] [--session name] [--profile name] [--backend chrome|webkit] <command>
     \\  br batch
     \\  br live [url]
     \\

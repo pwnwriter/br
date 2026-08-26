@@ -88,6 +88,7 @@ pub const Request = struct {
     format: ?[]const u8 = null,
     quality: ?u8 = null,
     profile_dir: ?[]const u8 = null,
+    backend: ?[]const u8 = null,
     cdp_method: ?[]const u8 = null,
     cdp_params_raw: ?[]const u8 = null,
 };
@@ -112,6 +113,7 @@ pub fn writeRequest(writer: anytype, req: Request) !void {
     try fieldString(writer, &first, "path", req.path);
     try fieldString(writer, &first, "format", req.format);
     try fieldString(writer, &first, "profileDir", req.profile_dir);
+    try fieldString(writer, &first, "backend", req.backend);
     try fieldString(writer, &first, "cdpMethod", req.cdp_method);
     if (req.amount) |v| try fieldInt(writer, &first, "amount", v);
     if (req.duration_ms) |v| try fieldInt(writer, &first, "durationMs", v);

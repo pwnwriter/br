@@ -23,11 +23,22 @@ function requireWebView() {
     );
 }
 
-function getSession(name: string, profileDir?: string): Session {
+const BACKENDS = ["webkit", "chrome"];
+
+function getSession(
+  name: string,
+  profileDir?: string,
+  backend?: string,
+): Session {
   if (!validIdentifier(name))
     throw Object.assign(new Error("invalid session name"), {
       code: "INVALID_ARGUMENTS",
     });
+  if (backend && !BACKENDS.includes(backend))
+    throw Object.assign(
+      new Error(`unknown backend "${backend}" (use ${BACKENDS.join(" | ")})`),
+      { code: "INVALID_ARGUMENTS" },
+    );
   let s = sessions.get(name);
   if (s) return s;
   requireWebView();
@@ -40,6 +51,7 @@ function getSession(name: string, profileDir?: string): Session {
       if (consoleEvents.length > 100) consoleEvents.shift();
     },
   };
+  if (backend) options.backend = backend;
   if (profileDir) options.dataStore = { directory: profileDir };
   s = {
     view: new (Bun as any).WebView(options),
@@ -77,7 +89,7 @@ export async function handle(req: Request) {
       return ok(req.id, { text: "ok\n" });
     }
 
-    const s = getSession(req.session, p.profileDir);
+    const s = getSession(req.session, p.profileDir, p.backend);
     const view = s.view;
     switch (req.method) {
       case "open":
