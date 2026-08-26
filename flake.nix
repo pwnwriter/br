@@ -16,22 +16,28 @@
           pname = "br";
           version = "0.1.0";
           src = ./.;
-          nativeBuildInputs = [ pkgs.zig pkgs.bun pkgs.makeWrapper ];
+          # Bun is not pinned from nixpkgs for now; CI installs the latest via
+          # `curl -fsSL https://bun.sh/install | bash`. Restore /* pkgs.bun */
+          # below (and the PATH prefix in installPhase) to bundle it again.
+          nativeBuildInputs = [ pkgs.zig pkgs.makeWrapper /* pkgs.bun */ ];
           buildPhase = "zig build -Doptimize=ReleaseSafe";
           installPhase = ''
             mkdir -p $out/bin $out/share/br
             cp zig-out/bin/br $out/bin/br
             cp -R worker $out/share/br/worker
+            # Bun not bundled for now; br finds it via $BR_BUN or `bun` on PATH.
+            # Previously appended: --prefix PATH : <makeBinPath [ pkgs.bun ]>
             wrapProgram $out/bin/br \
-              --set BR_WORKER_DIR $out/share/br/worker \
-              --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.bun ]}
+              --set BR_WORKER_DIR $out/share/br/worker
           '';
         };
 
         devShells.default = pkgs.mkShell {
-          packages = [ pkgs.zig pkgs.bun ];
+          # Bun from nixpkgs is commented out for now; install the latest with
+          # `curl -fsSL https://bun.sh/install | bash` or point $BR_BUN at it.
+          packages = [ pkgs.zig /* pkgs.bun */ ];
           shellHook = ''
-            echo "DevShell🚀: initiated"
+            echo "DevShell🚀: initiated (Bun not bundled; use \$BR_BUN or PATH)"
           '';
         };
       });

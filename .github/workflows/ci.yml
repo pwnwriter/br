@@ -13,6 +13,10 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
+      - name: Install latest Bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
       - uses: DeterminateSystems/determinate-nix-action@v3
       - name: Build package
         run: nix build
