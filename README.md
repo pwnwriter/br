@@ -1,118 +1,89 @@
-# br
+<div align="center">
 
-A tiny browser CLI built for agents.
+<img src=".github/assets/banner.svg" alt="br — a browser CLI built for agents" width="820">
 
-```bash
+<br>
+
+[![CI](https://img.shields.io/github/actions/workflow/status/pwnwriter/br/ci.yml?branch=main&style=flat-square&label=ci&labelColor=0B0F17&color=2DD4BF&logo=github)](https://github.com/pwnwriter/br/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-2DD4BF?style=flat-square&labelColor=0B0F17)](LICENSE)
+[![Zig](https://img.shields.io/badge/Zig-0.16%2B-F7A41D?style=flat-square&labelColor=0B0F17&logo=zig&logoColor=F7A41D)](https://ziglang.org)
+[![Bun](https://img.shields.io/badge/Bun-1.4%2B-E9D8C3?style=flat-square&labelColor=0B0F17&logo=bun&logoColor=E9D8C3)](https://bun.sh)
+[![Platform](https://img.shields.io/badge/macOS%20·%20Linux-93A2B5?style=flat-square&labelColor=0B0F17)](#install)
+[![Status](https://img.shields.io/badge/status-experimental-EAB308?style=flat-square&labelColor=0B0F17)](#status)
+
+</div>
+
+---
+
+**`br` turns a web page into a compact, semantic snapshot with stable `@refs` — then lets you (or an agent) act on those refs.** No Playwright, no Selenium, no huge DOM dumps. Just a tiny command surface built for minimal context.
+
+```console
 $ br open https://example.com
 $ br snap --compact
 
 Example Domain | https://example.com/
-@1 link More information...
+@1 link  More information...
 ```
 
-`br` turns a browser page into a compact semantic snapshot with stable `@refs`, then lets an agent act on those refs:
+That's the whole model:
 
 ```text
-browser -> semantic snapshot -> tiny @refs -> agent actions
+browser  →  snapshot  →  @refs  →  actions
 ```
 
-The agent automation surface is not Playwright, Puppeteer, Selenium, MCP, a TUI, or a web dashboard. `br live` is a separate experimental human mode for visual debugging.
+## Why br?
 
-## Why `br`
-
-`br` is not trying to be a full terminal browser. It is trying to be a small agent interface for browser work.
-
-Compared with a terminal browser like `terminal-browser`, `br` keeps the scope narrower:
-
-- Zig owns the CLI, daemon, and protocol.
-- Bun WebView owns the browser backend.
-- Kitty graphics are only the terminal rendering transport for `br live` and `br view`.
-- `br snap` is the primary interaction model, not a full browser UI.
-- Stable `@refs` and JSONL batch mode are first-class, so agents can do more with less context.
-
-The result is a thinner stack and a smaller command surface. The tradeoff is that `br` does not aim to match every browser feature or terminal integration a full browser product may offer.
-
-## Status
-
-Experimental, early, and usable for local testing. The browser backend targets Bun's experimental `Bun.WebView` API, so behavior can change as Bun changes.
-
-## Repository Description
-
-Use this as the GitHub repo description:
-
-```text
-A tiny browser CLI for AI agents: semantic snapshots, stable @refs, JSONL batch mode, and Bun WebView automation.
-```
-
-Suggested topics:
-
-```text
-browser-automation, ai-agents, cli, zig, bun, webview, jsonl, terminal, kitty-graphics
-```
+- **Small by design.** Not a terminal browser or a full automation framework — a thin agent interface. Zig owns the CLI and protocol; Bun's WebView owns the browser.
+- **Stable `@refs`.** Every interactive element gets a short, reusable handle. If one goes stale, `br` fails loudly with `STALE_REF` instead of clicking the wrong thing.
+- **Batch-native.** Multi-step flows run as JSONL in one shot, so agents do more with less back-and-forth.
+- **Visual when you want it.** `br view` and `br live` render the real page inline via the Kitty graphics protocol.
 
 ## Install
 
-Requirements:
+You'll need:
 
-- Zig 0.16+
-- Bun 1.4+ with `Bun.WebView`
-- Prettier for TypeScript formatting
-- macOS WebKit backend today; other Bun WebView backends are experimental
-
-From a checkout:
+- **Zig** 0.16+
+- **Bun** 1.4+ (with `Bun.WebView` — macOS WebKit today; other backends are experimental)
 
 ```bash
+# with Nix (recommended)
 nix develop
 zig build
 export BR_BUN="$(command -v bun)"
 ./zig-out/bin/br open https://example.com
-```
 
-Format TypeScript with Bun:
-
-```bash
-bun run fmt:ts
-```
-
-With Nix packaging:
-
-```bash
+# or build the packaged version
 nix build
 ./result/bin/br open https://example.com
 ```
 
-If you use a downloaded Bun binary:
-
-```bash
-export BR_BUN="$PWD/.tools/bun-darwin-aarch64/bun"
-```
-
-For packaged installs, set `BR_WORKER_DIR` to the installed `worker/` directory unless your package wrapper does it.
+> Using a downloaded Bun? Point `br` at it with `export BR_BUN=/path/to/bun`.
+> For packaged installs, set `BR_WORKER_DIR` to the installed `worker/` directory.
 
 ## Quickstart
 
+Log in to a page in five commands:
+
 ```bash
 br open https://example.com/login
-br snap
+br snap                      # list the interactive elements + their @refs
 
 br fill @2 "user@example.com"
 br fill @3 "$PASSWORD"
 br click @4
 
-br snap --compact
+br snap --compact            # see where you landed
 ```
 
-If a ref is stale, `br` fails loudly:
+Stale ref? `br` tells you plainly — just snapshot again and use the fresh ref:
 
 ```text
 STALE_REF @4
 ```
 
-Run `br snap` again and use the new ref.
+## Batch mode
 
-## Batch Mode
-
-Agents should prefer `batch` for multi-step flows:
+For anything multi-step, prefer `batch` — one JSON object in per line, one out. It never runs shell commands.
 
 ```bash
 br batch <<'JSONL'
@@ -123,159 +94,90 @@ br batch <<'JSONL'
 JSONL
 ```
 
-Batch mode returns one JSON object per input line and never runs shell commands.
+## Common commands
 
-## Commands
+| Command | What it does |
+| --- | --- |
+| `open <url>` | Navigate to a page |
+| `snap [--compact]` | Semantic snapshot with `@refs` |
+| `click <ref\|selector>` | Click an element |
+| `fill <ref> <text>` | Focus, clear, and type into a field |
+| `type <text>` / `press <key>` | Send keystrokes |
+| `find <text>` | Search the current refs |
+| `get <ref>` | Inspect a single element |
+| `screenshot [path]` | Save a PNG |
+| `view` | Render the viewport inline (Kitty graphics) |
+| `live [url]` | Interactive terminal browser (for humans) |
+
+<details>
+<summary><b>Full command reference</b></summary>
 
 ```text
 open <url>
 snap | snapshot [--compact]
-click <ref|selector>
-fill <ref|selector> <text>
-type <text>
-press <key>
-hover <ref|selector>
-text [ref|selector]
-html [ref|selector]
-get <ref|selector>
-attr <ref|selector> <attribute>
-value <ref|selector>
-find <text>
-scroll <amount>
-scroll-to <ref|selector>
-url
-title
-back
-forward
-reload
-wait <selector|duration-ms>
-eval <javascript>
+click <ref|selector>          fill <ref|selector> <text>
+type <text>                   press <key>              hover <ref|selector>
+text [ref|selector]           html [ref|selector]      get <ref|selector>
+attr <ref|selector> <attr>    value <ref|selector>     find <text>
+scroll <amount>               scroll-to <ref|selector>
+url                           title                    back | forward | reload
+wait <selector|ms>            eval <javascript>
 screenshot [path] [--format png|jpeg|webp] [--quality 0-100]
-view
-resize <width> <height>
-cookies
-console
+view                          resize <width> <height>  cookies    console
 close
+
+# admin
+session list | close <name> | close-all
+daemon status | stop
 ```
 
-Admin:
+Every meaningful command supports `--json` (stdout is pure JSON; diagnostics go to stderr).
 
-```text
-session list
-session close <name>
-session close-all
-daemon status
-daemon stop
-```
+</details>
 
-Human terminal browser mode:
+## Sessions & profiles
 
-```bash
-br live https://example.com
-```
-
-## Sessions
-
-The default session is `default`.
+The default session is `default`. Name others to keep separate browser contexts:
 
 ```bash
 br --session github open https://github.com
 br --session github snap
-
 br session list
 br session close github
-br session close-all
 ```
 
-`br` starts a persistent Bun worker automatically and communicates over JSONL through a Unix socket under `$XDG_RUNTIME_DIR/br/`, falling back to `$TMPDIR/br-runtime/`.
-
-## Profiles
-
-Profiles preserve supported browser state through Bun's `dataStore` option.
+Profiles persist browser state across runs (stored under `~/.local/share/br/profiles/`):
 
 ```bash
 br --profile github open https://github.com
 ```
 
-Profiles are stored under `~/.local/share/br/profiles/`. Session and profile names are limited to `[A-Za-z0-9_.-]`.
+Session and profile names are limited to `[A-Za-z0-9_.-]`.
 
-## JSON
-
-Every meaningful command supports `--json`.
-
-```bash
-br --json click @4
-```
-
-```json
-{"ok":true,"command":"click","url":"https://example.com/dashboard"}
-```
-
-STDOUT contains only JSON in JSON mode. Diagnostics go to STDERR.
-
-## Terminal View
-
-`br view` renders a one-shot viewport image using the Kitty graphics protocol:
-
-```bash
-br open https://example.com
-br view
-```
-
-`br live [url]` starts an experimental persistent terminal browser shell:
-
-```bash
-br live https://example.com
-```
-
-Controls:
+## How it works
 
 ```text
-click          browser click
-typing         browser text input
-j / k          scroll down / up
-Space          page down
-tab            switch tabs
-t              prompt for new tab URL or search text
-o / g          prompt to open URL or search text in current tab
-x              close tab
-:open <url>    navigate
-:reload        reload
-:back          back
-:forward       forward
-:debug-input   show raw input bytes in status line
-q              quit
+agent / human  →  br CLI (Zig)  →  JSONL over a Unix socket  →  Bun worker  →  Bun.WebView
 ```
 
-Trackpad scroll forwarding depends on the terminal. Keyboard scrolling is the reliable path today.
+`br` starts a persistent Bun worker automatically and talks to it over a Unix socket under `$XDG_RUNTIME_DIR/br/`. See [`.github/ARCHITECTURE.md`](.github/ARCHITECTURE.md) and [`.github/AGENTS.md`](.github/AGENTS.md) for the details.
 
-## Exit Codes
+<details>
+<summary><b>Exit codes</b></summary>
 
-```text
-0  SUCCESS
-2  INVALID_ARGUMENTS
-10 BROWSER_UNAVAILABLE
-11 NAVIGATION_FAILED
-12 ELEMENT_NOT_FOUND
-13 STALE_REF
-14 TIMEOUT
-15 EVALUATION_FAILED
-16 PROTOCOL_ERROR
-70 INTERNAL_ERROR
-```
+| Code | Meaning | | Code | Meaning |
+| --- | --- | --- | --- | --- |
+| `0` | success | | `13` | stale ref |
+| `2` | invalid arguments | | `14` | timeout |
+| `10` | browser unavailable | | `15` | evaluation failed |
+| `11` | navigation failed | | `16` | protocol error |
+| `12` | element not found | | `70` | internal error |
 
-## Agent Instructions
+</details>
 
-```text
-Use br for browser interaction.
+## Status
 
-1. br open <url>
-2. Run br snap --compact.
-3. Interact using @refs.
-4. Run another snap after navigation or major DOM changes.
-5. If STALE_REF occurs, snap again.
-6. Prefer br batch when performing several actions.
-```
+Experimental and early, but usable for local work. The browser backend targets Bun's experimental `Bun.WebView` API, so behavior can shift as Bun evolves. `br live` is a human debugging mode, not agent context.
 
 ## Development
 
@@ -285,18 +187,6 @@ zig build
 zig build test
 ```
 
-Run with a specific Bun:
+## License
 
-```bash
-BR_BUN=/path/to/bun ./zig-out/bin/br open https://example.com
-```
-
-See [`.github/ARCHITECTURE.md`](.github/ARCHITECTURE.md) and [`.github/AGENTS.md`](.github/AGENTS.md).
-
-## Limitations
-
-- Bun WebView is experimental.
-- `br live` is for humans and debugging, not agent context.
-- Snapshots intentionally omit most DOM details.
-- Trackpad scroll forwarding varies by terminal.
-- The integration test suite is still small.
+[MIT](LICENSE)

@@ -1,0 +1,26 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="br logo">
+  <defs>
+    <linearGradient id="tile" x1="256" y1="0" x2="256" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#141C2A"/>
+      <stop offset="1" stop-color="#0B0F17"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#tile)"/>
+  <rect x="1" y="1" width="510" height="510" rx="115" fill="none" stroke="#243244" stroke-width="2"/>
+  <!-- window chrome dots -->
+  <g fill="#2A3647">
+    <circle cx="150" cy="132" r="13"/>
+    <circle cx="192" cy="132" r="13"/>
+    <circle cx="234" cy="132" r="13"/>
+  </g>
+  <!-- br wordmark -->
+  <g transform="translate(101,170) scale(1.55)">
+    <g fill="none" stroke="#E7ECF3" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="30" y1="20" x2="30" y2="100"/>
+      <circle cx="60" cy="70" r="30"/>
+      <line x1="120" y1="40" x2="120" y2="100"/>
+      <path d="M120 54 Q121 40 141 40"/>
+    </g>
+    <rect x="165" y="42" width="28" height="58" rx="5" fill="#2DD4BF"/>
+  </g>
+</svg>
