@@ -42,7 +42,10 @@ browser  →  snapshot  →  @refs  →  actions
 
 > **If it renders in a browser, `br` turns it into commands — same page, whether you're an agent, a human, or hunting bugs.**
 
-### 🤖 As an AI agent
+<details>
+<summary><b>🤖 As an AI agent</b> — a browser without the DOM firehose</summary>
+
+<br>
 
 Give your agent a browser without drowning it in DOM. It reads a compact snapshot, acts on `@refs`, and branches on exit codes — no Playwright, no flaky selectors, no 50k-token HTML dumps.
 
@@ -59,9 +62,14 @@ JSONL
 
 One JSON line in, one out. Stable handles, deterministic exit codes (`STALE_REF`, `TIMEOUT`, …), and `--json` on everything — everything an agent needs to loop reliably.
 
-### 🧑‍💻 As a human
+</details>
 
-A browser you can pipe. Inspect a page, fill a form, grab a screenshot, or read it inline — without leaving the terminal or writing a script.
+<details>
+<summary><b>🧑‍💻 As a human</b> — a browser you can pipe</summary>
+
+<br>
+
+Inspect a page, fill a form, grab a screenshot, or read it inline — without leaving the terminal or writing a script.
 
 ```bash
 br open https://news.ycombinator.com
@@ -74,7 +82,12 @@ br live https://github.com   # full interactive terminal browser
 
 Great for quick checks, demos, scraping one page, or driving a site from a shell script.
 
-### 🛡️ For bug bounty & recon
+</details>
+
+<details>
+<summary><b>🛡️ For bug bounty & recon</b> — scriptable, pipeable triage</summary>
+
+<br>
 
 A scriptable, headful browser is a fast triage tool — map inputs, read client-side state, and run JS in page context, all pipeable into your recon pipeline. **On targets you're authorized to test.**
 
@@ -91,6 +104,8 @@ br screenshot finding.png                            # capture proof for the rep
 ```
 
 Keep separate authenticated contexts with `--profile`, script repeatable checks across params/endpoints with `batch`, and drive it all from the same tools as the rest of your recon.
+
+</details>
 
 > `cdp` needs the Chromium backend — pick it per command with `--backend chrome` (the default `webkit` backend has no CDP). See [Backends](#backends).
 
