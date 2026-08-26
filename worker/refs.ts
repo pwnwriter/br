@@ -4,7 +4,6 @@ export type RefEntry = {
   role: string;
   name: string;
   fingerprint: string;
-  interactive: boolean;
   attrs: Record<string, any>;
 };
 

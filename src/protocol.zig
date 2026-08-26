@@ -75,7 +75,6 @@ pub const Request = struct {
     method: Method,
     json: bool = false,
     compact: bool = false,
-    interactive: bool = false,
     url: ?[]const u8 = null,
     target: ?[]const u8 = null,
     text: ?[]const u8 = null,
@@ -105,7 +104,6 @@ pub fn writeRequest(writer: anytype, req: Request) !void {
     var first = true;
     try fieldBool(writer, &first, "json", req.json);
     try fieldBool(writer, &first, "compact", req.compact);
-    try fieldBool(writer, &first, "interactive", req.interactive);
     try fieldString(writer, &first, "url", req.url);
     try fieldString(writer, &first, "target", req.target);
     try fieldString(writer, &first, "text", req.text);

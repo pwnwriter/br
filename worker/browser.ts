@@ -88,10 +88,7 @@ export async function handle(req: Request) {
           view.url + "\n",
         );
       case "snapshot": {
-        const snap = await snapshot(view, {
-          compact: p.compact,
-          interactive: p.interactive,
-        });
+        const snap = await snapshot(view);
         s.refs.replace(snap.all);
         return cliOk(
           req,

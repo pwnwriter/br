@@ -93,7 +93,7 @@ For packaged installs, set `BR_WORKER_DIR` to the installed `worker/` directory 
 
 ```bash
 br open https://example.com/login
-br snap --interactive
+br snap
 
 br fill @2 "user@example.com"
 br fill @3 "$PASSWORD"
@@ -129,7 +129,7 @@ Batch mode returns one JSON object per input line and never runs shell commands.
 
 ```text
 open <url>
-snap | snapshot [--compact] [--interactive]
+snap | snapshot [--compact]
 click <ref|selector>
 fill <ref|selector> <text>
 type <text>

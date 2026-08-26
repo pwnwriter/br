@@ -39,7 +39,6 @@ JSONL
 Rules of thumb:
 
 - Use `snap --compact` first.
-- Use `snap --interactive` when choosing an action target.
 - Use `get @ref` for one element instead of another full snapshot.
 - Use `find "text"` when the desired label is known.
 - Use `--json` when branching on results.

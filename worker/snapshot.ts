@@ -3,7 +3,6 @@ import type { RefEntry } from "./refs";
 export type SnapshotResult = {
   text: string;
   compact: string;
-  interactive: RefEntry[];
   all: RefEntry[];
   title: string;
   url: string;
@@ -15,8 +14,7 @@ const SNAPSHOT_SCRIPT = String.raw`(() => {
   const seen = new Set();
   const out = [];
   const roleMap = {
-    A: "link", BUTTON: "button", INPUT: "textbox", TEXTAREA: "textbox", SELECT: "combobox",
-    H1: "heading", H2: "heading", H3: "heading", H4: "heading", H5: "heading", H6: "heading"
+    A: "link", BUTTON: "button", INPUT: "textbox", TEXTAREA: "textbox", SELECT: "combobox"
   };
   function clean(s) { return String(s || "").replace(/\s+/g, " ").trim().slice(0, MAX_TEXT); }
   function visible(el) {
@@ -78,19 +76,17 @@ const SNAPSHOT_SCRIPT = String.raw`(() => {
     const el = node;
     if (!visible(el)) continue;
     const r = role(el);
+    if (!interactive(r, el)) continue;
     const name = label(el);
-    if (!r && (!name || name.length > 70)) continue;
-    if (!r && out.length > 40) continue;
-    const key = r + "|" + name + "|" + cssPath(el);
+    const selector = cssPath(el);
+    const key = r + "|" + name + "|" + selector;
     if (seen.has(key)) continue;
     seen.add(key);
-    if (!r && name.length < 18) continue;
     const item = {
-      selector: cssPath(el),
-      role: r || "text",
+      selector,
+      role: r,
       name,
-      interactive: interactive(r, el),
-      fingerprint: fingerprint(el, r || "text", name),
+      fingerprint: fingerprint(el, r, name),
       attrs: {}
     };
     for (const a of ["href","placeholder","type","checked","disabled","value","aria-expanded","aria-selected"]) {
@@ -104,29 +100,23 @@ const SNAPSHOT_SCRIPT = String.raw`(() => {
   return { title: document.title || "", url: location.href, items: out };
 })()`;
 
-export async function snapshot(
-  view: any,
-  opts: { compact?: boolean; interactive?: boolean },
-): Promise<SnapshotResult> {
+export async function snapshot(view: any): Promise<SnapshotResult> {
   const raw = (await view.evaluate(SNAPSHOT_SCRIPT)) as any;
-  const all: RefEntry[] = [];
-  let n = 1;
-  for (const item of raw.items || []) {
-    if (item.interactive) {
-      all.push({ ref: "@" + n++, ...item });
-    }
-  }
-  const selected = opts.interactive ? all : all;
+  const all: RefEntry[] = (raw.items ?? []).map(
+    (item: Omit<RefEntry, "ref">, i: number) => ({
+      ref: "@" + (i + 1),
+      ...item,
+    }),
+  );
   const lines = [`page "${escapeText(raw.title || "")}" ${raw.url || ""}`];
   const compactLines = [`${escapeText(raw.title || "")} | ${raw.url || ""}`];
-  for (const item of selected) {
+  for (const item of all) {
     lines.push(formatLine(item, false));
     compactLines.push(formatLine(item, true));
   }
   return {
     text: lines.join("\n") + "\n",
     compact: compactLines.join("\n") + "\n",
-    interactive: selected,
     all,
     title: raw.title || "",
     url: raw.url || "",
