@@ -30,7 +30,7 @@ Zig owns:
 - exit-code mapping
 - stdout/stderr discipline
 - batch forwarding
-- terminal-browser process launch for `br live`
+- Kitty live-mode process launch for `br live`
 
 Files:
 
@@ -52,12 +52,12 @@ Files:
 
 ```text
 worker/main.ts      persistent Unix-socket server
-worker/client.ts    small socket client used by Zig
-worker/browser.ts   command handlers
-worker/snapshot.ts  semantic snapshot extraction
-worker/refs.ts      @ref mapping
-worker/live.ts      experimental human terminal browser
-worker/protocol.ts  request/response helpers
+worker/client.ts     small socket client used by Zig
+worker/browser.ts    command handlers
+worker/snapshot.ts   semantic snapshot extraction
+worker/refs.ts       @ref mapping
+worker/live.ts       experimental human terminal browser
+worker/protocol.ts   request/response helpers
 ```
 
 ## Protocol

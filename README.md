@@ -291,7 +291,7 @@ Run with a specific Bun:
 BR_BUN=/path/to/bun ./zig-out/bin/br open https://example.com
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/AGENTS.md](docs/AGENTS.md).
+See [`.github/ARCHITECTURE.md`](.github/ARCHITECTURE.md) and [`.github/AGENTS.md`](.github/AGENTS.md).
 
 ## Limitations
 

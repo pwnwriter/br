@@ -44,3 +44,4 @@ Rules of thumb:
 - Use `find "text"` when the desired label is known.
 - Use `--json` when branching on results.
 - Do not parse terminal graphics or `live` output.
+

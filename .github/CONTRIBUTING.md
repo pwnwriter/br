@@ -30,3 +30,4 @@ BR_BUN=/path/to/bun ./zig-out/bin/br open https://example.com
 Zig unit tests should cover parser, protocol, session validation, output formatting, and error code behavior.
 
 Browser tests should use local fixtures under `tests/fixtures/`, not public websites.
+

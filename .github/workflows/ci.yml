@@ -1,0 +1,23 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/determinate-nix-action@v3
+      - name: Build package
+        run: nix build
+      - name: Run Zig tests
+        run: nix develop --command zig build test
+      - name: Run Zig build
+        run: nix develop --command zig build
+
