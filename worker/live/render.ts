@@ -48,12 +48,19 @@ async function renderFrameAsync(
 ) {
   const image = commandMode
     ? blankViewport(cols, rows)
-    : kittyImage(
-        await view.screenshot({ format: "png", encoding: "base64" }),
-        cols,
-        rows,
-      );
+    : await screenshotImage(view, cols, rows);
   return `${deleteKittyImages()}${ESC}[H${ESC}[2K${tabBar(tabs, active, cols)}${ESC}[2;1H${image}${promptOverlay(cols, rows, commandMode, commandBuffer, promptAction)}${ESC}[${rows + 2};1H${ESC}[2K${statusLine(tabs, active, cols, commandMode, status)}`;
+}
+
+// A page that has not painted yet (or a blank view) can make screenshot throw.
+// Fall back to an empty viewport so a bad frame never breaks the render loop.
+async function screenshotImage(view: any, cols: number, rows: number) {
+  try {
+    const shot = await view.screenshot({ format: "png", encoding: "base64" });
+    return kittyImage(shot, cols, rows);
+  } catch {
+    return blankViewport(cols, rows);
+  }
 }
 
 function tabBar(tabs: Tab[], active: number, cols: number) {

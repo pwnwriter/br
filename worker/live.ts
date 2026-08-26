@@ -10,6 +10,14 @@ import type { MouseInput, PromptAction, Tab } from "./live/types";
 
 const startUrl = Bun.argv[2] || DEFAULT_URL;
 
+// A real (screenshot-able) start page: a WebView left at about:blank cannot be
+// captured, so an empty `br live` would otherwise render nothing.
+const START_PAGE =
+  "data:text/html," +
+  encodeURIComponent(
+    `<!doctype html><meta charset="utf8"><body style="margin:0;height:100vh;display:grid;place-items:center;background:#0b0f17;color:#8695a8;font:16px ui-monospace,SFMono-Regular,Menlo,monospace"><div>br &middot; press <b style="color:#2dd4bf">o</b> to open a URL &middot; <b style="color:#2dd4bf">t</b> new tab &middot; <b style="color:#2dd4bf">q</b> quit</div></body>`,
+  );
+
 let tabs: Tab[] = [];
 let active = 0;
 let width = Math.max(640, (process.stdout.columns || 100) * 10);
@@ -21,6 +29,19 @@ let commandBuffer = "";
 let promptAction: PromptAction = "command";
 let status = "";
 let debugInput = false;
+let viewLock: Promise<unknown> = Promise.resolve();
+
+// Bun.WebView is not reentrant: letting a screenshot overlap a navigate throws
+// a native "unknown error". Funnel every view call through one queue so they
+// run strictly one at a time.
+function locked<T>(fn: () => T | Promise<T>): Promise<T> {
+  const run = viewLock.then(fn, fn);
+  viewLock = run.then(
+    () => {},
+    () => {},
+  );
+  return run;
+}
 
 if (!(Bun as any).WebView) {
   console.error(
@@ -29,18 +50,30 @@ if (!(Bun as any).WebView) {
   process.exit(10);
 }
 
-setupTerminal();
-await newTab(startUrl);
-await render();
+// Keep a transient WebView error from tearing down the session; show it and
+// carry on rendering.
+process.on("uncaughtException", onError);
+process.on("unhandledRejection", onError);
+function onError(err: any) {
+  setStatus("error: " + (err?.message ?? err));
+}
 
+setupTerminal();
+
+// Attach input before the first paint so the session stays interactive even if
+// the initial render fails (e.g. screenshotting a page that has not painted).
 process.stdin.on("data", (chunk) => {
   void handleInput(Buffer.from(chunk).toString("utf8"));
 });
 
+await newTab(startUrl);
+scheduleRender();
+
 process.stdout.on("resize", () => {
   width = Math.max(640, (process.stdout.columns || 100) * 10);
   height = Math.max(360, ((process.stdout.rows || 30) - 2) * 20);
-  for (const tab of tabs) tab.view.resize(width, height).catch(() => {});
+  for (const tab of tabs)
+    locked(() => tab.view.resize(width, height)).catch(() => {});
   scheduleRender();
 });
 
@@ -75,25 +108,35 @@ function shutdown() {
 async function newTab(url: string) {
   const view = new (Bun as any).WebView({ width, height });
   const tab: Tab = { view, url: "", title: "" };
-  view.onNavigated = (url: string, title: string) => {
-    tab.url = url;
+  view.onNavigated = (u: string, title: string) => {
+    if (u.startsWith("data:")) return; // start page stays shown as a blank tab
+    tab.url = u;
     tab.title = title;
     scheduleRender();
   };
   tabs.push(tab);
   active = tabs.length - 1;
-  if (url && url !== DEFAULT_URL) await navigate(url);
+  if (url && url !== DEFAULT_URL) {
+    await navigate(url);
+  } else {
+    await locked(() => view.navigate(START_PAGE)).catch(() => {});
+    scheduleRender();
+    setTimeout(scheduleRender, 250);
+  }
 }
 
 async function navigate(url: string) {
   const tab = tabs[active];
   if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)) url = "https://" + url;
-  await tab.view
-    .navigate(url)
-    .catch((err) => setStatus(`navigation failed: ${err.message}`));
-  tab.url = tab.view.url;
-  tab.title = tab.view.title;
+  await locked(async () => {
+    await tab.view.navigate(url);
+    tab.url = tab.view.url;
+    tab.title = tab.view.title;
+  }).catch((err) => setStatus(`navigation failed: ${err?.message ?? err}`));
+  // Re-render once now and again shortly: navigate can resolve before the page
+  // has painted, so the first frame may still be blank.
   scheduleRender();
+  setTimeout(scheduleRender, 250);
 }
 
 async function handleInput(input: string) {
@@ -152,9 +195,10 @@ async function handleInput(input: string) {
     return;
   }
   if (input === "x" && tabs.length > 1) {
-    tabs[active].view.close();
+    const dead = tabs[active];
     tabs.splice(active, 1);
     active = Math.max(0, active - 1);
+    locked(() => dead.view.close()).catch(() => {});
     scheduleRender();
     return;
   }
@@ -181,7 +225,7 @@ async function handleInput(input: string) {
   else if (input === "\x1b") await press("Escape");
   else if (input === "\x7f") await press("Backspace");
   else if (input.length === 1 && input >= " ")
-    await tabs[active].view.type(input);
+    await locked(() => tabs[active].view.type(input)).catch(() => {});
   scheduleRender();
 }
 
@@ -246,23 +290,23 @@ async function handleMouse(mouse: MouseInput) {
   if (mouse.down && mouse.button === 0) {
     const x = Math.round(((mouse.x - 1) / cols) * width);
     const y = Math.round(((mouse.y - 2) / rows) * height);
-    await tabs[active].view.click(x, y);
+    await locked(() => tabs[active].view.click(x, y)).catch(() => {});
   }
   scheduleRender();
 }
 
 async function press(key: string) {
-  await tabs[active].view.press(key).catch(() => {});
+  await locked(() => tabs[active].view.press(key)).catch(() => {});
 }
 
 async function scrollPage(deltaY: number) {
   const view = tabs[active].view;
-  await view.scroll(0, deltaY).catch(() => {});
-  await view
-    .evaluate(
+  await locked(async () => {
+    await view.scroll(0, deltaY);
+    await view.evaluate(
       `window.scrollBy({ top: ${JSON.stringify(deltaY)}, left: 0, behavior: "instant" }); true`,
-    )
-    .catch(() => {});
+    );
+  }).catch(() => {});
 }
 
 function scheduleRender() {
@@ -284,16 +328,18 @@ function scheduleRender() {
 async function render() {
   const rows = Math.max(1, (process.stdout.rows || 30) - 2);
   const cols = Math.max(1, process.stdout.columns || 100);
-  const frame = await renderFrame({
-    tabs,
-    active,
-    cols,
-    rows,
-    commandMode,
-    commandBuffer,
-    promptAction,
-    status,
-  });
+  const frame = await locked(() =>
+    renderFrame({
+      tabs,
+      active,
+      cols,
+      rows,
+      commandMode,
+      commandBuffer,
+      promptAction,
+      status,
+    }),
+  );
   process.stdout.write(frame);
 }
 
