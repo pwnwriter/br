@@ -4,10 +4,14 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    // `std.c.getenv` (used for BR_BUN/BR_WORKER_DIR and the runtime paths in
+    // session.zig) requires libc. macOS links it implicitly; Linux does not,
+    // so link it explicitly to keep the build portable across CI.
     const br_mod = b.addModule("br", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
+        .link_libc = true,
     });
 
     const exe = b.addExecutable(.{
@@ -16,6 +20,7 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/main.zig"),
             .target = target,
             .optimize = optimize,
+            .link_libc = true,
             .imports = &.{
                 .{ .name = "br", .module = br_mod },
             },
