@@ -37,7 +37,7 @@ pub fn run(init: std.process.Init) !void {
         .session_close => try sendAdmin(gpa, io, p.request.json, "sessionClose", p.close_session),
         .session_close_all => try sendAdmin(gpa, io, p.request.json, "sessionCloseAll", null),
         .batch => try passthrough(io, &.{ bunExe(), try workerScript(gpa, "client.ts"), "--batch", try ensureDaemon(gpa, io), p.request.session }),
-        .live => try runLive(gpa, io, p.live_url),
+        .live => try runLive(gpa, io, p.live_url, p.live_refresh),
         .request => try runRequest(gpa, io, p.request),
     }
 }
@@ -75,10 +75,16 @@ fn sendAdmin(gpa: Allocator, io: Io, json: bool, method: []const u8, name: ?[]co
     try writeOut(io, result.stdout);
 }
 
-fn runLive(gpa: Allocator, io: Io, url: ?[]const u8) !void {
-    const bun = bunExe();
-    const script = try workerScript(gpa, "live.ts");
-    try if (url) |u| passthrough(io, &.{ bun, script, u }) else passthrough(io, &.{ bun, script });
+fn runLive(gpa: Allocator, io: Io, url: ?[]const u8, refresh: ?[]const u8) !void {
+    var argv: std.ArrayList([]const u8) = .empty;
+    try argv.append(gpa, bunExe());
+    try argv.append(gpa, try workerScript(gpa, "live.ts"));
+    if (url) |u| try argv.append(gpa, u);
+    if (refresh) |r| {
+        try argv.append(gpa, "--refresh");
+        try argv.append(gpa, r);
+    }
+    try passthrough(io, argv.items);
 }
 
 /// Ensures the browser daemon is running and returns its socket path.

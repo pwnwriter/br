@@ -8,7 +8,24 @@ import {
 import { renderFrame } from "./live/render";
 import type { MouseInput, PromptAction, Tab } from "./live/types";
 
-const startUrl = Bun.argv[2] || DEFAULT_URL;
+// argv after the script: [url?] and/or [--refresh <ms>]. Refresh is opt-in:
+// 0 means event-driven (redraw only on input/navigation) — best for browsing.
+// A positive value continuously re-renders every <ms> so motion (video,
+// animations) updates instead of freezing. Floored to keep the CPU sane.
+let startUrl = DEFAULT_URL;
+let refreshMs = 0;
+{
+  const rest = Bun.argv.slice(2);
+  for (let i = 0; i < rest.length; i += 1) {
+    const a = rest[i];
+    if (a === "--refresh") {
+      const v = parseInt(rest[++i] ?? "", 10);
+      if (Number.isFinite(v) && v > 0) refreshMs = Math.max(30, v);
+    } else if (!a.startsWith("--")) {
+      startUrl = a;
+    }
+  }
+}
 
 // A real (screenshot-able) start page: a WebView left at about:blank cannot be
 // captured, so an empty `br live` would otherwise render nothing.
@@ -72,6 +89,10 @@ process.stdin.on("data", (chunk) => {
 
 await newTab(startUrl);
 scheduleRender();
+
+// Opt-in continuous refresh: keep re-rendering so video/animations update.
+// scheduleRender() already coalesces, so a fast tick never stacks work.
+if (refreshMs > 0) setInterval(scheduleRender, refreshMs);
 
 process.stdout.on("resize", () => {
   width = Math.max(640, (process.stdout.columns || 100) * 10);

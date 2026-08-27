@@ -48,6 +48,7 @@ pub const Parsed = struct {
     request: protocol.Request = .{ .id = 1, .session = session.default_session, .method = .url },
     close_session: ?[]const u8 = null,
     live_url: ?[]const u8 = null,
+    live_refresh: ?[]const u8 = null,
 };
 
 pub const ParseError = error{InvalidArguments};
@@ -83,11 +84,18 @@ pub fn parse(allocator: std.mem.Allocator, args: []const []const u8) !Parsed {
         .batch => parsed.mode = .batch,
         .live => {
             parsed.mode = .live;
-            if (i < args.len and !std.mem.startsWith(u8, args[i], "--")) {
-                parsed.live_url = args[i];
-                i += 1;
+            while (i < args.len) {
+                if (std.mem.eql(u8, args[i], "--refresh")) {
+                    i += 1;
+                    if (i >= args.len) return ParseError.InvalidArguments;
+                    _ = std.fmt.parseInt(u64, args[i], 10) catch return ParseError.InvalidArguments;
+                    parsed.live_refresh = args[i];
+                    i += 1;
+                } else if (!std.mem.startsWith(u8, args[i], "--")) {
+                    parsed.live_url = args[i];
+                    i += 1;
+                } else return ParseError.InvalidArguments;
             }
-            if (i != args.len) return ParseError.InvalidArguments;
         },
         .daemon => {
             if (i >= args.len) return ParseError.InvalidArguments;
@@ -305,7 +313,7 @@ pub const help =
     \\Usage:
     \\  br [--json] [--session name] [--profile name] [--backend chrome|webkit] <command>
     \\  br batch
-    \\  br live [url]
+    \\  br live [url] [--refresh <ms>]
     \\
     \\Core:
     \\  open <url>                 snap|snapshot [--compact]
@@ -320,7 +328,7 @@ pub const help =
     \\  view                       render viewport with Kitty graphics
     \\  resize <width> <height>    cookies                    console
     \\  close
-    \\  live [url]                 interactive Kitty terminal browser
+    \\  live [url] [--refresh ms]  interactive Kitty terminal browser
     \\
     \\Admin:
     \\  session list|close <name>|close-all
