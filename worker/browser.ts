@@ -92,13 +92,17 @@ export async function handle(req: Request) {
     const s = getSession(req.session, p.profileDir, p.backend);
     const view = s.view;
     switch (req.method) {
-      case "open":
-        await view.navigate(required(p.url, "url"));
+      case "open": {
+        let url = required(p.url, "url");
+        // Accept bare hosts like "news.ycombinator.com" — default to https://.
+        if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)) url = "https://" + url;
+        await view.navigate(url);
         return cliOk(
           req,
           { url: view.url, title: view.title },
           view.url + "\n",
         );
+      }
       case "snapshot": {
         const snap = await snapshot(view);
         s.refs.replace(snap.all);

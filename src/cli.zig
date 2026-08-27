@@ -183,7 +183,10 @@ fn parseRequestCommand(cmd: Command, args: []const []const u8, i: *usize, req: *
             req.text = try readRequired(args, i);
             break :blk .eval;
         },
-        .screenshot => .screenshot,
+        .screenshot => blk: {
+            req.path = readOptionalValue(args, i);
+            break :blk .screenshot;
+        },
         .view => .view,
         .resize => blk: {
             req.width = std.fmt.parseInt(u32, try readRequired(args, i), 10) catch return ParseError.InvalidArguments;
