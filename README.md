@@ -111,10 +111,28 @@ Keep separate authenticated contexts with `--profile`, script repeatable checks 
 
 ## Install
 
-You'll need:
+### Download a release
 
-- **Zig** 0.16+
-- **Bun** 1.4+ (with `Bun.WebView`: WebKit by default, Chromium via `--backend chrome`)
+Grab the tarball for your platform from [Releases](https://github.com/pwnwriter/br/releases). Each one bundles `br`, a matching Bun, and the `worker/` scripts, so it runs on a fresh machine with nothing else to install. Untar and run: `br` finds its Bun and worker beside itself.
+
+```bash
+tar xzf br-<version>-<target>.tar.gz        # e.g. br-0.1.0-aarch64-macos.tar.gz
+./br-<version>-<target>/br open https://example.com
+```
+
+> [!IMPORTANT]
+> **macOS:** the binary is ad-hoc signed but not notarized, so Gatekeeper blocks
+> the first run (*"Apple could not verify 'br' is free of malware…"*). Clear the
+> download quarantine once and it runs normally:
+>
+> ```bash
+> xattr -dr com.apple.quarantine ./br-<version>-<target>
+> # e.g. xattr -dr com.apple.quarantine ./br-0.1.0-aarch64-macos
+> ```
+
+### Build from source
+
+You'll need **Zig** 0.16+ and **Bun** 1.4+ (with `Bun.WebView`: WebKit by default, Chromium via `--backend chrome`).
 
 ```bash
 # with Nix (recommended)
