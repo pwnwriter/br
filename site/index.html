@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="br — a browser CLI built for agents. Semantic snapshots, stable @refs, JSONL batch mode, Bun WebView.">
+<meta name="description" content="br: a browser CLI built for agents. Semantic snapshots, stable @refs, JSONL batch mode, Bun WebView.">
 <meta name="color-scheme" content="dark">
-<title>br — a browser CLI built for agents</title>
+<title>br: a browser CLI built for agents</title>
 <style>
   @font-face {
     font-family: "DepartureMono";
@@ -23,9 +23,9 @@
     --muted: #526170;
     --dim: #8a97a4;
     --line: #d7e0e9;
-    --accent: #0d9488;        /* deep teal — accents on the light page */
+    --accent: #0d9488;        /* deep teal: accents on the light page */
     --accent-bright: #14b8a6; /* cursor blocks */
-    --teal: #2dd4bf;          /* bright teal — only on the dark terminals */
+    --teal: #2dd4bf;          /* bright teal: only on the dark terminals */
     --amber: #f5b843;
     --pink: #f472b6;
     --code-bg: #0e1723;
@@ -169,7 +169,7 @@
       <h1>A browser CLI<br>built for <span class="accent">agents</span>.</h1>
       <p class="lede">
         Turn any web page into a compact semantic snapshot with stable
-        <b>@refs</b> — then click, fill, and read it from your shell.
+        <b>@refs</b>, then click, fill, and read it from your shell.
         No Playwright, no DOM dumps, minimal context.
       </p>
       <div class="cta">
@@ -181,7 +181,7 @@
     <div class="term">
       <div class="term-bar">
         <i></i><i></i><i></i>
-        <span class="tt">br — login demo</span>
+        <span class="tt">br: login demo</span>
       </div>
       <video class="term-vid" autoplay muted loop playsinline preload="metadata" poster="assets/br-login-poster.png">
         <source src="assets/br-login.mp4" type="video/mp4">
@@ -211,7 +211,7 @@
   <div class="wrap">
     <div class="sec-label">who it's for</div>
     <h2 class="sec-title">Same page. Three ways in.</h2>
-    <p class="sec-sub">If it renders in a browser, <span style="color:var(--accent)">br</span> turns it into commands — for an agent, a human, or a bug hunter.</p>
+    <p class="sec-sub">If it renders in a browser, <span style="color:var(--accent)">br</span> turns it into commands: for an agent, a human, or a bug hunter.</p>
     <div class="cards">
       <div class="card">
         <div class="ic">🤖</div>
@@ -235,7 +235,7 @@ JSONL</pre>
       <div class="card">
         <div class="ic">🛡️</div>
         <h3>Bug bounty</h3>
-        <p>Scriptable, headful triage: map inputs, read client-side state, run JS in page context — pipeable into recon. <em style="color:var(--dim)">Authorized targets only.</em></p>
+        <p>Scriptable, headful triage: map inputs, read client-side state, run JS in page context, pipeable into recon. <em style="color:var(--dim)">Authorized targets only.</em></p>
         <pre><span class="t">br</span> eval 'document.cookie'
 <span class="t">br</span> attr @5 href
 <span class="t">br</span> --backend chrome cdp ...
