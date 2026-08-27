@@ -10,6 +10,7 @@ export function renderFrame(args: {
   commandBuffer: string;
   promptAction: PromptAction;
   status: string;
+  mode: "normal" | "insert";
 }) {
   const {
     tabs,
@@ -20,6 +21,7 @@ export function renderFrame(args: {
     commandBuffer,
     promptAction,
     status,
+    mode,
   } = args;
   const tab = tabs[active];
   return renderFrameAsync(
@@ -32,7 +34,18 @@ export function renderFrame(args: {
     commandBuffer,
     promptAction,
     status,
+    mode,
   );
+}
+
+// Double-buffered image ids. Each frame is transmitted under a fresh id and
+// placed over the same cells; only AFTER it lands do we delete the previous
+// id. The new frame always covers the old one, so there is never a blank gap
+// (the flicker). We alternate two ids so terminal image storage stays bounded.
+let prevImageId: number | null = null;
+function nextImageId() {
+  const id = prevImageId === 41 ? 42 : 41;
+  return id;
 }
 
 async function renderFrameAsync(
@@ -45,19 +58,39 @@ async function renderFrameAsync(
   commandBuffer: string,
   promptAction: PromptAction,
   status: string,
+  mode: "normal" | "insert",
 ) {
-  const image = commandMode
-    ? blankViewport(cols, rows)
-    : await screenshotImage(view, cols, rows);
-  return `${deleteKittyImages()}${ESC}[H${ESC}[2K${tabBar(tabs, active, cols)}${ESC}[2;1H${image}${promptOverlay(cols, rows, commandMode, commandBuffer, promptAction)}${ESC}[${rows + 2};1H${ESC}[2K${statusLine(tabs, active, cols, commandMode, status)}`;
+  const chrome = `${ESC}[H${ESC}[2K${tabBar(tabs, active, cols)}`;
+  const footer = `${ESC}[${rows + 2};1H${ESC}[2K${statusLine(tabs, active, cols, commandMode, status, mode)}`;
+
+  // Command mode: blank the viewport under the prompt box and drop the image.
+  if (commandMode) {
+    const clear = prevImageId != null ? deleteImage(prevImageId) : "";
+    prevImageId = null;
+    return `${clear}${chrome}${ESC}[2;1H${blankViewport(cols, rows)}${promptOverlay(cols, rows, true, commandBuffer, promptAction)}${footer}`;
+  }
+
+  const id = nextImageId();
+  const image = await screenshotImage(view, cols, rows, id);
+  // If the screenshot failed we get a blank viewport (no image drawn); in that
+  // case don't retire the previous id — there is nothing new covering it.
+  const drewImage = image.includes("_G");
+  const retire = drewImage && prevImageId != null ? deleteImage(prevImageId) : "";
+  if (drewImage) prevImageId = id;
+  return `${chrome}${ESC}[2;1H${image}${retire}${footer}`;
 }
 
 // A page that has not painted yet (or a blank view) can make screenshot throw.
 // Fall back to an empty viewport so a bad frame never breaks the render loop.
-async function screenshotImage(view: any, cols: number, rows: number) {
+async function screenshotImage(
+  view: any,
+  cols: number,
+  rows: number,
+  id: number,
+) {
   try {
     const shot = await view.screenshot({ format: "png", encoding: "base64" });
-    return kittyImage(shot, cols, rows);
+    return kittyImage(shot, cols, rows, id);
   } catch {
     return blankViewport(cols, rows);
   }
@@ -79,11 +112,18 @@ function statusLine(
   cols: number,
   commandMode: boolean,
   status: string,
+  mode: "normal" | "insert",
 ) {
   if (commandMode) return fit("Enter to confirm  Esc to cancel", cols, status);
+  if (mode === "insert")
+    return fit(
+      "-- INSERT --  keys go to the page  |  Esc to exit",
+      cols,
+      status,
+    );
   const tab = tabs[active];
   return fit(
-    `${tab.url || "about:blank"}  |  q quit  o open  t new tab  x close tab  tab switch  j/k scroll`,
+    `${tab.url || "about:blank"}  |  q quit  o open  t tab  x close  i insert  j/k scroll`,
     cols,
     status,
   );
@@ -142,18 +182,25 @@ function fit(s: string, cols: number, status: string) {
     : text + " ".repeat(cols - text.length);
 }
 
-function kittyImage(base64: string, cols: number, rows: number) {
+function kittyImage(base64: string, cols: number, rows: number, id: number) {
   const chunkSize = 4096;
   let out = "";
+  // Control keys go ONLY on the first chunk; continuation chunks carry just m=
+  // (Ghostty/WezTerm drop the image otherwise). i=<id> tags the image so we can
+  // retire the previous frame by id; q=2 suppresses terminal ack replies.
   for (let i = 0; i < base64.length; i += chunkSize) {
     const chunk = base64.slice(i, i + chunkSize);
     const more = i + chunkSize < base64.length ? 1 : 0;
-    const placement = i === 0 ? `,c=${cols},r=${rows}` : "";
-    out += `${ESC}_Ga=T,f=100${placement},m=${more};${chunk}${ESC}\\`;
+    const control =
+      i === 0
+        ? `a=T,f=100,i=${id},c=${cols},r=${rows},q=2,m=${more}`
+        : `m=${more}`;
+    out += `${ESC}_G${control};${chunk}${ESC}\\`;
   }
   return out;
 }
 
-function deleteKittyImages() {
-  return `${ESC}_Ga=d,d=A${ESC}\\`;
+// Delete one image (and its placements) by id, freeing its storage.
+function deleteImage(id: number) {
+  return `${ESC}_Ga=d,d=i,i=${id},q=2${ESC}\\`;
 }
