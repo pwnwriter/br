@@ -16,6 +16,11 @@ jobs:
       - uses: actions/checkout@v6
       - uses: DeterminateSystems/determinate-nix-action@v3
 
+      # rcodesign ad-hoc signs the macOS binaries so Apple Silicon will run them
+      # (unsigned arm64 Mach-O is killed on launch). No Apple account needed.
+      - name: Install rcodesign
+        run: cargo install apple-codesign
+
       - name: Build binaries
         run: |
           set -euo pipefail
@@ -29,6 +34,15 @@ jobs:
             rm -rf "$stage"
             mkdir -p "$stage"
             cp zig-out/bin/br "$stage/br"
+            # Apple Silicon refuses to run an unsigned Mach-O; ad-hoc sign the
+            # macOS binaries (rcodesign runs on Linux, no Apple account needed).
+            case "$target" in
+              *-macos)
+                rcodesign sign "$stage/br" "$stage/br.signed"
+                mv "$stage/br.signed" "$stage/br"
+                chmod +x "$stage/br"
+                ;;
+            esac
             cp -R worker "$stage/worker"
             cp README.md LICENSE "$stage/"
             tar -czf "dist/${stage}.tar.gz" "$stage"
@@ -48,7 +62,7 @@ jobs:
           {
             echo "## Downloads"
             echo
-            echo "Untar and run — the \`br\` binary finds its \`worker/\` beside itself. Requires [Bun](https://bun.sh) 1.4+ on \`PATH\`."
+            echo "Untar and run: the \`br\` binary finds its \`worker/\` beside itself. Requires [Bun](https://bun.sh) 1.4+ on \`PATH\`."
             echo
             echo "| Platform | SHA256 |"
             echo "| --- | --- |"
@@ -58,6 +72,11 @@ jobs:
               url="https://github.com/${repo}/releases/download/${tag}/${file}"
               echo "| [${label[$target]}](${url}) | \`${sha}\` |"
             done
+            echo
+            echo "> **macOS:** the binaries are ad-hoc signed but not notarized, so strip the download quarantine before first run:"
+            echo "> \`\`\`"
+            echo "> xattr -dr com.apple.quarantine br"
+            echo "> \`\`\`"
             echo
             echo "Verify: \`sha256sum -c SHA256SUMS\` (Linux) or \`shasum -a 256 -c SHA256SUMS\` (macOS)."
           } > dist/notes.md
