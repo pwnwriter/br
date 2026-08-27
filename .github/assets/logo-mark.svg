@@ -1,11 +1,32 @@
-<svg width="240" height="130" viewBox="0 0 240 130" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="br">
-  <g transform="translate(14,8)">
-    <g fill="none" stroke="#E7ECF3" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="30" y1="20" x2="30" y2="100"/>
-      <circle cx="60" cy="70" r="30"/>
-      <line x1="120" y1="40" x2="120" y2="100"/>
-      <path d="M120 54 Q121 40 141 40"/>
-    </g>
-    <rect x="165" y="42" width="28" height="58" rx="5" fill="#2DD4BF"/>
+<svg width="212" height="150" viewBox="0 0 150 106" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="br">
+  <!-- b = vertical stem + ghost as the bowl -->
+  <g fill="#56949f">
+    <!-- stem / ascender -->
+    <rect x="8" y="4" width="16" height="94" rx="8"/>
+    <!-- bowl = ghost -->
+    <path d="M23 92 L23 62 A28 28 0 0 1 79 62 L79 92 q-9.3 10 -18.6 0 q-9.3 10 -18.6 0 q-9.4 10 -18.8 0 Z"/>
+  </g>
+  <!-- ghost face -->
+  <circle cx="38" cy="70" r="5" fill="#d7827e" opacity="0.5"/>
+  <circle cx="64" cy="70" r="5" fill="#d7827e" opacity="0.5"/>
+  <g fill="#575279">
+    <circle cx="43" cy="56" r="7"/>
+    <circle cx="40" cy="53" r="2" fill="#fffaf3"/>
+  </g>
+  <g>
+    <ellipse cx="63" cy="56" rx="7" ry="7" fill="#575279">
+      <animate attributeName="ry" dur="3.6s" repeatCount="indefinite"
+               values="7;7;7;1;7;7" keyTimes="0;0.84;0.88;0.91;0.94;1"/>
+    </ellipse>
+    <circle cx="60" cy="53" r="2" fill="#fffaf3">
+      <animate attributeName="r" dur="3.6s" repeatCount="indefinite"
+               values="2;2;2;0;2;2" keyTimes="0;0.84;0.88;0.91;0.94;1"/>
+    </circle>
+  </g>
+  <circle cx="51" cy="72" r="2.8" fill="#575279"/>
+  <!-- r -->
+  <g fill="none" stroke="#56949f" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="104" y1="54" x2="104" y2="98"/>
+    <path d="M104 66 Q105 54 127 54"/>
   </g>
 </svg>

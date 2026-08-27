@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src=".github/assets/banner.svg" alt="br — a browser CLI built for agents" width="820">
+<img src=".github/assets/banner.svg" alt="br: a browser CLI built for agents" width="820">
 
 <br>
 
@@ -15,7 +15,7 @@
 
 ---
 
-**`br` turns a web page into a compact, semantic snapshot with stable `@refs` — then lets you (or an agent) act on those refs.** No Playwright, no Selenium, no huge DOM dumps. Just a tiny command surface built for minimal context.
+**`br` turns a web page into a compact, semantic snapshot with stable `@refs`, then lets you (or an agent) act on those refs.** No Playwright, no Selenium, no huge DOM dumps. Just a tiny command surface built for minimal context.
 
 ```console
 $ br open https://example.com
@@ -33,21 +33,21 @@ browser  →  snapshot  →  @refs  →  actions
 
 ## Why br?
 
-- **Small by design.** Not a terminal browser or a full automation framework — a thin agent interface. Zig owns the CLI and protocol; Bun's WebView owns the browser.
+- **Small by design.** Not a terminal browser or a full automation framework, a thin agent interface. Zig owns the CLI and protocol; Bun's WebView owns the browser.
 - **Stable `@refs`.** Every interactive element gets a short, reusable handle. If one goes stale, `br` fails loudly with `STALE_REF` instead of clicking the wrong thing.
 - **Batch-native.** Multi-step flows run as JSONL in one shot, so agents do more with less back-and-forth.
 - **Visual when you want it.** `br view` and `br live` render the real page inline via the Kitty graphics protocol.
 
 ## Usage
 
-> **If it renders in a browser, `br` turns it into commands — same page, whether you're an agent, a human, or hunting bugs.**
+> **If it renders in a browser, `br` turns it into commands: same page, whether you're an agent, a human, or hunting bugs.**
 
 <details>
-<summary><b>🤖 As an AI agent</b> — a browser without the DOM firehose</summary>
+<summary><b>🤖 As an AI agent</b>: a browser without the DOM firehose</summary>
 
 <br>
 
-Give your agent a browser without drowning it in DOM. It reads a compact snapshot, acts on `@refs`, and branches on exit codes — no Playwright, no flaky selectors, no 50k-token HTML dumps.
+Give your agent a browser without drowning it in DOM. It reads a compact snapshot, acts on `@refs`, and branches on exit codes. No Playwright, no flaky selectors, no 50k-token HTML dumps.
 
 ```bash
 br batch <<'JSONL'
@@ -60,16 +60,16 @@ br batch <<'JSONL'
 JSONL
 ```
 
-One JSON line in, one out. Stable handles, deterministic exit codes (`STALE_REF`, `TIMEOUT`, …), and `--json` on everything — everything an agent needs to loop reliably.
+One JSON line in, one out. Stable handles, deterministic exit codes (`STALE_REF`, `TIMEOUT`, …), and `--json` on everything: everything an agent needs to loop reliably.
 
 </details>
 
 <details>
-<summary><b>🧑‍💻 As a human</b> — a browser you can pipe</summary>
+<summary><b>🧑‍💻 As a human</b>: a browser you can pipe</summary>
 
 <br>
 
-Inspect a page, fill a form, grab a screenshot, or read it inline — without leaving the terminal or writing a script.
+Inspect a page, fill a form, grab a screenshot, or read it inline, without leaving the terminal or writing a script.
 
 ```bash
 br open https://news.ycombinator.com
@@ -85,11 +85,11 @@ Great for quick checks, demos, scraping one page, or driving a site from a shell
 </details>
 
 <details>
-<summary><b>🛡️ For bug bounty & recon</b> — scriptable, pipeable triage</summary>
+<summary><b>🛡️ For bug bounty & recon</b>: scriptable, pipeable triage</summary>
 
 <br>
 
-A scriptable, headful browser is a fast triage tool — map inputs, read client-side state, and run JS in page context, all pipeable into your recon pipeline. **On targets you're authorized to test.**
+A scriptable, headful browser is a fast triage tool: map inputs, read client-side state, and run JS in page context, all pipeable into your recon pipeline. **On targets you're authorized to test.**
 
 ```bash
 br --profile target open https://app.example.com/account
@@ -107,14 +107,14 @@ Keep separate authenticated contexts with `--profile`, script repeatable checks 
 
 </details>
 
-> `cdp` needs the Chromium backend — pick it per command with `--backend chrome` (the default `webkit` backend has no CDP). See [Backends](#backends).
+> `cdp` needs the Chromium backend. Pick it per command with `--backend chrome` (the default `webkit` backend has no CDP). See [Backends](#backends).
 
 ## Install
 
 You'll need:
 
 - **Zig** 0.16+
-- **Bun** 1.4+ (with `Bun.WebView` — WebKit by default, Chromium via `--backend chrome`)
+- **Bun** 1.4+ (with `Bun.WebView`: WebKit by default, Chromium via `--backend chrome`)
 
 ```bash
 # with Nix (recommended)
@@ -149,7 +149,7 @@ br snap --compact            # see where you landed
 
 > [!IMPORTANT]
 > `@refs` only exist after a `snap`. If a page changes under you, an old ref
-> goes stale — `br` fails loudly instead of clicking the wrong thing. Just
+> goes stale, `br` fails loudly instead of clicking the wrong thing. Just
 > snapshot again and use the fresh ref:
 >
 > ```text
@@ -158,7 +158,7 @@ br snap --compact            # see where you landed
 
 ## Batch mode
 
-For anything multi-step, prefer `batch` — one JSON object in per line, one out. It never runs shell commands.
+For anything multi-step, prefer `batch`: one JSON object in per line, one out. It never runs shell commands.
 
 ```bash
 br batch <<'JSONL'
@@ -241,7 +241,7 @@ br --backend webkit open https://example.com   # WebKit (default)
 | Backend | Notes |
 | --- | --- |
 | `webkit` | Default. Available everywhere `Bun.WebView` is (macOS WebKit today). |
-| `chrome` | Chromium engine — required for `cdp` (Chrome DevTools Protocol). |
+| `chrome` | Chromium engine, required for `cdp` (Chrome DevTools Protocol). |
 
 The backend is fixed when a session's browser is first created, so set it on your first command in that session (e.g. the `open`).
 
@@ -277,7 +277,7 @@ Experimental and early, but usable for local work.
 ## Development
 
 `br` is Zig (CLI + protocol) plus a Bun worker (the browser). A [`justfile`](justfile)
-wraps the common tasks — run `just` with no args to list them:
+wraps the common tasks. Run `just` with no args to list them:
 
 <details>
 <summary><b>just recipes</b></summary>
@@ -299,7 +299,7 @@ wraps the common tasks — run `just` with no args to list them:
 > All paths need **Zig 0.16+** and **Bun 1.4+**. Pick whichever setup fits you.
 
 <details>
-<summary><b>With Nix + just</b> — recommended, zero manual installs</summary>
+<summary><b>With Nix + just</b>: recommended, zero manual installs</summary>
 
 ```bash
 nix develop            # drops you in a shell with Zig + a repo-local Bun on PATH
@@ -314,7 +314,7 @@ one is present; otherwise point `BR_BUN` at your Bun.
 </details>
 
 <details>
-<summary><b>With just, without Nix</b> — you bring Zig + Bun</summary>
+<summary><b>With just, without Nix</b>: you bring Zig + Bun</summary>
 
 Install the tools yourself, then let `just` drive the rest:
 
@@ -332,12 +332,12 @@ just run open github.com
 </details>
 
 <details>
-<summary><b>Raw</b> — no just, download Bun manually</summary>
+<summary><b>Raw</b>: no just, download Bun manually</summary>
 
 Just Zig and a Bun binary; call the underlying commands directly:
 
 ```bash
-# 1. Bun 1.4+ (any location works — just tell br where it is)
+# 1. Bun 1.4+ (any location works, just tell br where it is)
 curl -fsSL https://bun.sh/install | bash
 export BR_BUN="$HOME/.bun/bin/bun"
 

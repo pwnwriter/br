@@ -1,26 +1,44 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="br logo">
   <defs>
     <linearGradient id="tile" x1="256" y1="0" x2="256" y2="512" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#141C2A"/>
-      <stop offset="1" stop-color="#0B0F17"/>
+      <stop stop-color="#fffaf3"/>
+      <stop offset="1" stop-color="#f2e9e1"/>
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="116" fill="url(#tile)"/>
-  <rect x="1" y="1" width="510" height="510" rx="115" fill="none" stroke="#243244" stroke-width="2"/>
+  <rect x="1" y="1" width="510" height="510" rx="115" fill="none" stroke="#dfdad9" stroke-width="2"/>
   <!-- window chrome dots -->
-  <g fill="#2A3647">
-    <circle cx="150" cy="132" r="13"/>
-    <circle cx="192" cy="132" r="13"/>
-    <circle cx="234" cy="132" r="13"/>
+  <g fill="#cecacd">
+    <circle cx="150" cy="120" r="13"/>
+    <circle cx="192" cy="120" r="13"/>
+    <circle cx="234" cy="120" r="13"/>
   </g>
-  <!-- br wordmark -->
-  <g transform="translate(101,170) scale(1.55)">
-    <g fill="none" stroke="#E7ECF3" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="30" y1="20" x2="30" y2="100"/>
-      <circle cx="60" cy="70" r="30"/>
-      <line x1="120" y1="40" x2="120" y2="100"/>
-      <path d="M120 54 Q121 40 141 40"/>
+  <!-- br mark: b (stem + ghost bowl) + r -->
+  <g transform="translate(86,155) scale(2.4)">
+    <g fill="#56949f">
+      <rect x="8" y="4" width="16" height="94" rx="8"/>
+      <path d="M23 92 L23 62 A28 28 0 0 1 79 62 L79 92 q-9.3 10 -18.6 0 q-9.3 10 -18.6 0 q-9.4 10 -18.8 0 Z"/>
     </g>
-    <rect x="165" y="42" width="28" height="58" rx="5" fill="#2DD4BF"/>
+    <circle cx="38" cy="70" r="5" fill="#d7827e" opacity="0.5"/>
+    <circle cx="64" cy="70" r="5" fill="#d7827e" opacity="0.5"/>
+    <g fill="#575279">
+      <circle cx="43" cy="56" r="7"/>
+      <circle cx="40" cy="53" r="2" fill="#fffaf3"/>
+    </g>
+    <g>
+      <ellipse cx="63" cy="56" rx="7" ry="7" fill="#575279">
+        <animate attributeName="ry" dur="3.6s" repeatCount="indefinite"
+                 values="7;7;7;1;7;7" keyTimes="0;0.84;0.88;0.91;0.94;1"/>
+      </ellipse>
+      <circle cx="60" cy="53" r="2" fill="#fffaf3">
+        <animate attributeName="r" dur="3.6s" repeatCount="indefinite"
+                 values="2;2;2;0;2;2" keyTimes="0;0.84;0.88;0.91;0.94;1"/>
+      </circle>
+    </g>
+    <circle cx="51" cy="72" r="2.8" fill="#575279"/>
+    <g fill="none" stroke="#56949f" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="104" y1="54" x2="104" y2="98"/>
+      <path d="M104 66 Q105 54 127 54"/>
+    </g>
   </g>
 </svg>
