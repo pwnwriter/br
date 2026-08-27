@@ -27,12 +27,12 @@ test:
 # Format Zig and TypeScript in place
 fmt:
     zig fmt src build.zig
-    {{bun}}x prettier --write "worker/**/*.ts"
+    {{bun}} x prettier --write "worker/**/*.ts"
 
 # Check formatting without writing (used by CI)
 fmt-check:
     zig fmt --check src build.zig
-    {{bun}}x prettier --check "worker/**/*.ts"
+    {{bun}} x prettier --check "worker/**/*.ts"
 
 # Everything CI checks: formatting, build, tests
 check: fmt-check build test

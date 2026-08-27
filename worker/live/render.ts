@@ -75,7 +75,8 @@ async function renderFrameAsync(
   // If the screenshot failed we get a blank viewport (no image drawn); in that
   // case don't retire the previous id — there is nothing new covering it.
   const drewImage = image.includes("_G");
-  const retire = drewImage && prevImageId != null ? deleteImage(prevImageId) : "";
+  const retire =
+    drewImage && prevImageId != null ? deleteImage(prevImageId) : "";
   if (drewImage) prevImageId = id;
   return `${chrome}${ESC}[2;1H${image}${retire}${footer}`;
 }
