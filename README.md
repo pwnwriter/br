@@ -128,6 +128,7 @@ nix build
 ./result/bin/br open https://example.com
 ```
 
+> [!TIP]
 > Using a downloaded Bun? Point `br` at it with `export BR_BUN=/path/to/bun`.
 > For packaged installs, set `BR_WORKER_DIR` to the installed `worker/` directory.
 
@@ -146,11 +147,14 @@ br click @4
 br snap --compact            # see where you landed
 ```
 
-Stale ref? `br` tells you plainly — just snapshot again and use the fresh ref:
-
-```text
-STALE_REF @4
-```
+> [!IMPORTANT]
+> `@refs` only exist after a `snap`. If a page changes under you, an old ref
+> goes stale — `br` fails loudly instead of clicking the wrong thing. Just
+> snapshot again and use the fresh ref:
+>
+> ```text
+> STALE_REF @4
+> ```
 
 ## Batch mode
 
@@ -264,15 +268,90 @@ agent / human  →  br CLI (Zig)  →  JSONL over a Unix socket  →  Bun worker
 
 ## Status
 
-Experimental and early, but usable for local work. The browser backend targets Bun's experimental `Bun.WebView` API, so behavior can shift as Bun evolves. `br live` is a human debugging mode, not agent context.
+Experimental and early, but usable for local work.
+
+> [!WARNING]
+> The browser backend targets Bun's experimental `Bun.WebView` API, so behavior
+> can shift as Bun evolves. `br live` is a human debugging mode, not agent context.
 
 ## Development
 
+`br` is Zig (CLI + protocol) plus a Bun worker (the browser). A [`justfile`](justfile)
+wraps the common tasks — run `just` with no args to list them:
+
+<details>
+<summary><b>just recipes</b></summary>
+
+| Recipe | What it does |
+| --- | --- |
+| `just build` | Release binary → `zig-out/bin/br` |
+| `just debug` | Debug build |
+| `just run <args>` | Run br, e.g. `just run open github.com` |
+| `just test` | Run the test suite |
+| `just fmt` | Format Zig + TypeScript |
+| `just fmt-check` | Check formatting (what CI runs) |
+| `just check` | `fmt-check` + `build` + `test` |
+| `just clean` | Remove build artifacts |
+
+</details>
+
+> [!NOTE]
+> All paths need **Zig 0.16+** and **Bun 1.4+**. Pick whichever setup fits you.
+
+<details>
+<summary><b>With Nix + just</b> — recommended, zero manual installs</summary>
+
 ```bash
-nix develop
-zig build
-zig build test
+nix develop            # drops you in a shell with Zig + a repo-local Bun on PATH
+just                   # list recipes
+just check             # fmt-check, build, test
+just run open github.com
 ```
+
+The devShell auto-adds a repo-local Bun from `.tools/<platform>/` to `PATH` if
+one is present; otherwise point `BR_BUN` at your Bun.
+
+</details>
+
+<details>
+<summary><b>With just, without Nix</b> — you bring Zig + Bun</summary>
+
+Install the tools yourself, then let `just` drive the rest:
+
+```bash
+# just:  https://github.com/casey/just
+# zig 0.16+:  https://ziglang.org/download
+# bun 1.4+:
+curl -fsSL https://bun.sh/install | bash
+export BR_BUN="$(command -v bun)"
+
+just check
+just run open github.com
+```
+
+</details>
+
+<details>
+<summary><b>Raw</b> — no just, download Bun manually</summary>
+
+Just Zig and a Bun binary; call the underlying commands directly:
+
+```bash
+# 1. Bun 1.4+ (any location works — just tell br where it is)
+curl -fsSL https://bun.sh/install | bash
+export BR_BUN="$HOME/.bun/bin/bun"
+
+# 2. build / test / format
+zig build -Doptimize=ReleaseSafe
+zig build test
+zig fmt src build.zig
+"$BR_BUN" x prettier --write "worker/**/*.ts"
+
+# 3. run
+./zig-out/bin/br open https://example.com
+```
+
+</details>
 
 ## License
 
