@@ -30,13 +30,13 @@ pub fn run(init: std.process.Init) !void {
     switch (p.mode) {
         .help => try writeOut(io, cli.help),
         .version => try writeOut(io, "br 0.1.0\n"),
-        .daemon_run => try passthrough(io, &.{ bunExe(), try workerScript(gpa, io, "main.ts"), "--server" }),
+        .daemon_run => try passthrough(io, &.{ bunExe(gpa, io), try workerScript(gpa, io, "main.ts"), "--server" }),
         .daemon_status => try writeOut(io, if (pingDaemon(gpa, io, try session.socketPath(gpa))) "running\n" else "stopped\n"),
         .daemon_stop => try sendAdmin(gpa, io, false, "daemonStop", null),
         .session_list => try sendAdmin(gpa, io, p.request.json, "sessionList", null),
         .session_close => try sendAdmin(gpa, io, p.request.json, "sessionClose", p.close_session),
         .session_close_all => try sendAdmin(gpa, io, p.request.json, "sessionCloseAll", null),
-        .batch => try passthrough(io, &.{ bunExe(), try workerScript(gpa, io, "client.ts"), "--batch", try ensureDaemon(gpa, io), p.request.session }),
+        .batch => try passthrough(io, &.{ bunExe(gpa, io), try workerScript(gpa, io, "client.ts"), "--batch", try ensureDaemon(gpa, io), p.request.session }),
         .live => try runLive(gpa, io, p.live_url, p.live_refresh),
         .request => try runRequest(gpa, io, p.request),
     }
@@ -77,7 +77,7 @@ fn sendAdmin(gpa: Allocator, io: Io, json: bool, method: []const u8, name: ?[]co
 
 fn runLive(gpa: Allocator, io: Io, url: ?[]const u8, refresh: ?[]const u8) !void {
     var argv: std.ArrayList([]const u8) = .empty;
-    try argv.append(gpa, bunExe());
+    try argv.append(gpa, bunExe(gpa, io));
     try argv.append(gpa, try workerScript(gpa, io, "live.ts"));
     if (url) |u| try argv.append(gpa, u);
     if (refresh) |r| {
@@ -94,7 +94,7 @@ fn ensureDaemon(gpa: Allocator, io: Io) ![]const u8 {
 
     Io.Dir.cwd().createDirPath(io, try session.runtimeDir(gpa)) catch {};
     _ = std.process.spawn(io, .{
-        .argv = &.{ bunExe(), try workerScript(gpa, io, "main.ts"), "--server", sock },
+        .argv = &.{ bunExe(gpa, io), try workerScript(gpa, io, "main.ts"), "--server", sock },
         .stdin = .ignore,
         .stdout = .ignore,
         .stderr = .inherit,
@@ -118,7 +118,7 @@ fn pingDaemon(gpa: Allocator, io: Io, sock: []const u8) bool {
 
 fn callClient(gpa: Allocator, io: Io, sock: []const u8, line: []const u8) !std.process.RunResult {
     return std.process.run(gpa, io, .{
-        .argv = &.{ bunExe(), try workerScript(gpa, io, "client.ts"), sock, line },
+        .argv = &.{ bunExe(gpa, io), try workerScript(gpa, io, "client.ts"), sock, line },
         .stdout_limit = .limited(protocol.max_message_bytes),
         .stderr_limit = .limited(stderr_limit),
     });
@@ -164,8 +164,17 @@ fn fatal(io: Io, code: Code, json: bool, message: []const u8) noreturn {
     std.process.exit(code.exitStatus());
 }
 
-fn bunExe() []const u8 {
+/// Resolves the Bun executable. Order:
+///   1. $BR_BUN         — explicit override
+///   2. <exe dir>/bun   — bundled alongside br in the release tarball
+///   3. "bun"           — from $PATH
+fn bunExe(gpa: Allocator, io: Io) []const u8 {
     if (std.c.getenv("BR_BUN")) |raw| return std.mem.span(raw);
+    if (std.process.executableDirPathAlloc(io, gpa)) |exe_dir| {
+        if (std.fs.path.join(gpa, &.{ exe_dir, "bun" })) |beside| {
+            if (pathExists(io, beside)) return beside;
+        } else |_| {}
+    } else |_| {}
     return "bun";
 }
 
@@ -183,14 +192,14 @@ fn workerDir(gpa: Allocator, io: Io) ![]const u8 {
     if (std.c.getenv("BR_WORKER_DIR")) |raw| return std.mem.span(raw);
     if (std.process.executableDirPathAlloc(io, gpa)) |exe_dir| {
         const beside = try std.fs.path.join(gpa, &.{ exe_dir, "worker" });
-        if (dirExists(io, beside)) return beside;
+        if (pathExists(io, beside)) return beside;
         const shared = try std.fs.path.join(gpa, &.{ exe_dir, "..", "share", "br", "worker" });
-        if (dirExists(io, shared)) return shared;
+        if (pathExists(io, shared)) return shared;
     } else |_| {}
     return "worker";
 }
 
-fn dirExists(io: Io, path: []const u8) bool {
+fn pathExists(io: Io, path: []const u8) bool {
     Io.Dir.cwd().access(io, path, .{}) catch return false;
     return true;
 }

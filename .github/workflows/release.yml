@@ -16,11 +16,6 @@ jobs:
       - uses: actions/checkout@v6
       - uses: DeterminateSystems/determinate-nix-action@v3
 
-      # rcodesign ad-hoc signs the macOS binaries so Apple Silicon will run them
-      # (unsigned arm64 Mach-O is killed on launch). No Apple account needed.
-      - name: Install rcodesign
-        run: cargo install apple-codesign
-
       - name: Build binaries
         run: |
           set -euo pipefail
@@ -34,17 +29,26 @@ jobs:
             rm -rf "$stage"
             mkdir -p "$stage"
             cp zig-out/bin/br "$stage/br"
-            # Apple Silicon refuses to run an unsigned Mach-O; ad-hoc sign the
-            # macOS binaries (rcodesign runs on Linux, no Apple account needed).
+            # zig already ad-hoc signs the macOS binaries (linker-signed), so
+            # Apple Silicon runs them; no extra signing step needed.
+
+            # Bundle the matching Bun so the tarball is self-contained. br finds
+            # it via <exe dir>/bun (see bunExe in src/runner.zig).
             case "$target" in
-              *-macos)
-                rcodesign sign "$stage/br" "$stage/br.signed"
-                mv "$stage/br.signed" "$stage/br"
-                chmod +x "$stage/br"
-                ;;
+              x86_64-linux-musl)  bun_plat=bun-linux-x64-musl ;;
+              aarch64-linux-musl) bun_plat=bun-linux-aarch64-musl ;;
+              x86_64-macos)       bun_plat=bun-darwin-x64 ;;
+              aarch64-macos)      bun_plat=bun-darwin-aarch64 ;;
             esac
+            curl -fsSL -o bun.zip "https://github.com/oven-sh/bun/releases/latest/download/${bun_plat}.zip"
+            unzip -qo bun.zip
+            cp "${bun_plat}/bun" "$stage/bun"
+            chmod +x "$stage/bun"
+            rm -rf bun.zip "$bun_plat"
+
             cp -R worker "$stage/worker"
             cp README.md LICENSE "$stage/"
+            curl -fsSL -o "$stage/LICENSE-bun.md" https://raw.githubusercontent.com/oven-sh/bun/main/LICENSE.md
             tar -czf "dist/${stage}.tar.gz" "$stage"
             echo "::endgroup::"
           done
@@ -62,7 +66,7 @@ jobs:
           {
             echo "## Downloads"
             echo
-            echo "Untar and run: the \`br\` binary finds its \`worker/\` beside itself. Requires [Bun](https://bun.sh) 1.4+ on \`PATH\`."
+            echo "Self-contained: each tarball bundles \`br\`, a matching [Bun](https://bun.sh), and the \`worker/\` scripts. Untar and run \`./br\` — no dependencies to install."
             echo
             echo "| Platform | SHA256 |"
             echo "| --- | --- |"
