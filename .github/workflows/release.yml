@@ -35,7 +35,36 @@ jobs:
             echo "::endgroup::"
           done
           (cd dist && sha256sum *.tar.gz > SHA256SUMS)
+
+          # Release body: a Markdown table linking each tarball with its SHA256.
+          declare -A label=(
+            [x86_64-linux-musl]="Linux · x86_64"
+            [aarch64-linux-musl]="Linux · aarch64 (arm64)"
+            [x86_64-macos]="macOS · x86_64 (Intel)"
+            [aarch64-macos]="macOS · aarch64 (Apple Silicon)"
+          )
+          repo="${{ github.repository }}"
+          tag="$GITHUB_REF_NAME"
+          {
+            echo "## Downloads"
+            echo
+            echo "Untar and run — the \`br\` binary finds its \`worker/\` beside itself. Requires [Bun](https://bun.sh) 1.4+ on \`PATH\`."
+            echo
+            echo "| Platform | SHA256 |"
+            echo "| --- | --- |"
+            for target in $targets; do
+              file="br-${version}-${target}.tar.gz"
+              sha=$(awk -v f="$file" '$2==f {print $1}' dist/SHA256SUMS)
+              url="https://github.com/${repo}/releases/download/${tag}/${file}"
+              echo "| [${label[$target]}](${url}) | \`${sha}\` |"
+            done
+            echo
+            echo "Verify: \`sha256sum -c SHA256SUMS\` (Linux) or \`shasum -a 256 -c SHA256SUMS\` (macOS)."
+          } > dist/notes.md
+
           ls -l dist
+          echo "----- release notes -----"
+          cat dist/notes.md
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
@@ -50,4 +79,5 @@ jobs:
           files: |
             dist/*.tar.gz
             dist/SHA256SUMS
+          body_path: dist/notes.md
           generate_release_notes: true
