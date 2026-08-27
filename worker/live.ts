@@ -25,6 +25,10 @@ let height = Math.max(360, ((process.stdout.rows || 30) - 2) * 20);
 let rendering = false;
 let needsRender = false;
 let commandMode = false;
+// Normal: single keys are app shortcuts. Insert: every key goes to the page,
+// so you can type into a focused search box (t/q/j no longer hijacked). Esc
+// leaves insert; clicking into a text field auto-enters it.
+let mode: "normal" | "insert" = "normal";
 let commandBuffer = "";
 let promptAction: PromptAction = "command";
 let status = "";
@@ -127,6 +131,7 @@ async function newTab(url: string) {
 
 async function navigate(url: string) {
   const tab = tabs[active];
+  mode = "normal"; // a fresh page starts without a focused field
   if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)) url = "https://" + url;
   await locked(async () => {
     await tab.view.navigate(url);
@@ -173,6 +178,26 @@ async function handleInput(input: string) {
   }
   if (debugInput) setStatus("input " + describeBytes(input));
 
+  // Insert mode: forward every key to the page. Only Esc (or Ctrl-C) escapes
+  // back to Normal, so page inputs get t/q/space/etc. verbatim.
+  if (mode === "insert") {
+    if (input === "\x1b" || input === "\x03") {
+      mode = "normal";
+      setStatus("");
+      scheduleRender();
+      return;
+    }
+    await handleInsertKey(input);
+    scheduleRender();
+    return;
+  }
+
+  // Normal mode: single keys are app shortcuts.
+  if (input === "i") {
+    mode = "insert";
+    scheduleRender();
+    return;
+  }
   if (input === "q" || input === "\x03") shutdown();
   if (input === ":") {
     startPrompt("command", "");
@@ -224,9 +249,22 @@ async function handleInput(input: string) {
   else if (input === "\r") await press("Enter");
   else if (input === "\x1b") await press("Escape");
   else if (input === "\x7f") await press("Backspace");
-  else if (input.length === 1 && input >= " ")
-    await locked(() => tabs[active].view.type(input)).catch(() => {});
+  // Unbound printable keys do nothing in Normal mode — press `i` to type.
   scheduleRender();
+}
+
+// Insert mode: translate the keystroke to a page action. Arrows/Enter/etc. go
+// through as key presses; everything printable is typed into the focused input.
+async function handleInsertKey(input: string) {
+  if (input === "\x1b[A") return press("ArrowUp");
+  if (input === "\x1b[B") return press("ArrowDown");
+  if (input === "\x1b[C") return press("ArrowRight");
+  if (input === "\x1b[D") return press("ArrowLeft");
+  if (input === "\r" || input === "\n") return press("Enter");
+  if (input === "\x7f") return press("Backspace");
+  if (input === "\t") return press("Tab");
+  if (input >= " ")
+    await locked(() => tabs[active].view.type(input)).catch(() => {});
 }
 
 async function runCommand(command: string) {
@@ -291,8 +329,27 @@ async function handleMouse(mouse: MouseInput) {
     const x = Math.round(((mouse.x - 1) / cols) * width);
     const y = Math.round(((mouse.y - 2) / rows) * height);
     await locked(() => tabs[active].view.click(x, y)).catch(() => {});
+    // Clicking into a text field should let you type immediately.
+    if (mode === "normal" && (await focusIsEditable())) mode = "insert";
   }
   scheduleRender();
+}
+
+// True when the page's active element accepts text input, so we can auto-enter
+// Insert on click. One eval per click (not per keystroke) — cheap.
+async function focusIsEditable(): Promise<boolean> {
+  try {
+    const r = await locked(() =>
+      tabs[active].view.evaluate(
+        `(() => { const e = document.activeElement; if (!e) return 0;` +
+          ` const t = (e.tagName || "").toLowerCase();` +
+          ` return (e.isContentEditable || t === "input" || t === "textarea" || t === "select") ? 1 : 0; })()`,
+      ),
+    );
+    return Number(r) === 1;
+  } catch {
+    return false;
+  }
 }
 
 async function press(key: string) {
@@ -338,6 +395,7 @@ async function render() {
       commandBuffer,
       promptAction,
       status,
+      mode,
     }),
   );
   process.stdout.write(frame);

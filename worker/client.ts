@@ -51,7 +51,14 @@ if (Bun.argv[2] === "--batch") {
     }
     const path = parsed.result?.kittyPath;
     if (!path) process.exit(1);
-    process.stdout.write(await Bun.file(path).text());
+    // Write the Kitty frame and AWAIT the pipe drain before exiting.
+    // process.stdout.write() is async on a pipe; a bare process.exit(0) after
+    // it truncates a >~200KB frame mid-payload, so the terminal never receives
+    // the final m=0 chunk and renders nothing.
+    const frame = await Bun.file(path).bytes();
+    await new Promise<void>((resolve, reject) =>
+      process.stdout.write(frame, (err) => (err ? reject(err) : resolve())),
+    );
     await Bun.file(path)
       .delete()
       .catch(() => {});

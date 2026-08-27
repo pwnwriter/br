@@ -374,10 +374,14 @@ function classify(err: any) {
 function kittyImage(base64: string) {
   const chunkSize = 4096;
   let out = "";
+  // Per the Kitty graphics protocol, control keys (a=T,f=100) go ONLY on the
+  // first chunk; continuation chunks carry just m=. Kitty tolerates repeating
+  // them, but Ghostty/WezTerm are strict and will drop the image otherwise.
   for (let i = 0; i < base64.length; i += chunkSize) {
     const chunk = base64.slice(i, i + chunkSize);
     const more = i + chunkSize < base64.length ? 1 : 0;
-    out += `\x1b_Ga=T,f=100,m=${more};${chunk}\x1b\\`;
+    const control = i === 0 ? `a=T,f=100,m=${more}` : `m=${more}`;
+    out += `\x1b_G${control};${chunk}\x1b\\`;
   }
   return out + "\n";
 }
