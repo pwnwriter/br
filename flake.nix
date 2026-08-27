@@ -37,7 +37,20 @@
           # `curl -fsSL https://bun.sh/install | bash` or point $BR_BUN at it.
           packages = [ pkgs.zig /* pkgs.bun */ ];
           shellHook = ''
-            echo "DevShell🚀: initiated (Bun not bundled; use \$BR_BUN or PATH)"
+            # Prefer a repo-local Bun checked into .tools/<platform>/ (gitignored)
+            # so the devShell works without a system Bun. Prepend its dir to PATH.
+            for d in "$PWD"/.tools/*/; do
+              if [ -x "$d/bun" ]; then
+                export PATH="$d:$PATH"
+                export BR_BUN="$d/bun"
+                break
+              fi
+            done
+            if command -v bun >/dev/null 2>&1; then
+              echo "DevShell🚀: bun $(bun --version) ($(command -v bun))"
+            else
+              echo "DevShell🚀: initiated (Bun not bundled; use \$BR_BUN or PATH)"
+            fi
           '';
         };
       });
