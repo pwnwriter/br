@@ -109,6 +109,7 @@
   .term-body .flag { color: var(--amber); }
   .term-body .str { color: var(--pink); }
   .cur2 { display: inline-block; width: 0.55em; height: 1.05em; background: var(--teal); transform: translateY(0.16em); }
+  .term-vid { display: block; width: 100%; height: auto; background: var(--code-bg); }
 
   section { padding: 76px 0; border-top: 1px solid var(--line); }
   .sec-label { font-size: 12.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
@@ -177,21 +178,14 @@
       </div>
     </div>
 
-    <div class="term" aria-hidden="true">
+    <div class="term">
       <div class="term-bar">
         <i></i><i></i><i></i>
-        <span class="tt">br — session</span>
+        <span class="tt">br — login demo</span>
       </div>
-<pre class="term-body"><span class="pr">$</span> br open https://github.com/login
-<span class="pr">$</span> br snap <span class="flag">--compact</span>
-
-<span class="dim">Sign in to GitHub · GitHub | github.com/login</span>
-<span class="ref">@1</span> textbox  Username or email address
-<span class="ref">@2</span> textbox  Password
-<span class="ref">@3</span> button   Sign in
-
-<span class="pr">$</span> br fill <span class="ref">@1</span> <span class="str">"octocat"</span>
-<span class="pr">$</span> br click <span class="ref">@3</span><span class="cur2 blink"></span></pre>
+      <video class="term-vid" autoplay muted loop playsinline preload="metadata" poster="assets/br-login-poster.png">
+        <source src="assets/br-login.mp4" type="video/mp4">
+      </video>
     </div>
   </div>
 </header>
@@ -297,5 +291,20 @@ export BR_BUN="$(command -v bun)"
     </div>
   </div>
 </footer>
+
+<script>
+  // Respect reduced-motion: don't autoplay the demo, offer controls instead.
+  (function () {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      var v = document.querySelector(".term-vid");
+      if (v) {
+        v.removeAttribute("autoplay");
+        v.removeAttribute("loop");
+        v.setAttribute("controls", "");
+        if (v.pause) v.pause();
+      }
+    }
+  })();
+</script>
 </body>
 </html>
