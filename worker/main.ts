@@ -18,9 +18,38 @@ try {
   unlinkSync(socketPath);
 } catch {}
 
+// Per-connection write state. Bun's socket.write() is non-blocking: on a large
+// response it writes only what fits the send buffer and returns fewer bytes, so
+// calling socket.end() straight after truncates the rest (client then sees an
+// unterminated JSON string). Queue the bytes and drain them, ending only once
+// everything has flushed.
+type Conn = { queue: Buffer; ending: boolean };
+
+function flush(socket: any) {
+  const conn: Conn = socket.data;
+  if (conn.queue.length > 0) {
+    const n = socket.write(conn.queue);
+    conn.queue =
+      n >= conn.queue.length ? Buffer.alloc(0) : conn.queue.subarray(n);
+  }
+  if (conn.queue.length === 0 && conn.ending) socket.end();
+}
+
+function enqueue(socket: any, text: string) {
+  const conn: Conn = socket.data;
+  conn.queue = Buffer.concat([conn.queue, Buffer.from(text)]);
+  flush(socket);
+}
+
 const server = Bun.listen({
   unix: socketPath,
   socket: {
+    open(socket) {
+      socket.data = { queue: Buffer.alloc(0), ending: false } satisfies Conn;
+    },
+    drain(socket) {
+      flush(socket);
+    },
     async data(socket, data) {
       const input = Buffer.from(data).toString("utf8");
       for (const line of input.split("\n")) {
@@ -28,9 +57,10 @@ const server = Bun.listen({
         try {
           const req = parseLine(line);
           const response = await handle(req);
-          socket.write(JSON.stringify(response) + "\n");
+          enqueue(socket, JSON.stringify(response) + "\n");
         } catch (err: any) {
-          socket.write(
+          enqueue(
+            socket,
             JSON.stringify({
               version: 1,
               id: 0,
@@ -43,7 +73,8 @@ const server = Bun.listen({
           );
         }
       }
-      socket.end();
+      (socket.data as Conn).ending = true;
+      flush(socket);
     },
   },
 });
