@@ -33,6 +33,11 @@ browser  →  snapshot  →  @refs  →  actions
 
 ## Demos
 
+Live website(`yeswehack.com`) rendering inside terminal 
+
+https://github.com/user-attachments/assets/afa04277-1085-4cc3-8d63-6b3597e81a52
+
+
 Open, snapshot, click, capture:
 
 <video src="https://github.com/user-attachments/assets/cd44fc54-bd58-44f8-b9ea-4326bfa8e6ad" controls width="100%"></video>
