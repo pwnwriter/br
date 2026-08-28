@@ -6,7 +6,7 @@ pub const Mode = enum { request, batch, live, record, patch, replay, recipes, re
 
 const GlobalOption = enum { json, session, profile, backend, help, version };
 const RequestOption = enum { compact, format, quality };
-const RecipeOption = enum { refresh, pause_on_secret, pause_on_fail, jsonl, yes, all };
+const RecipeOption = enum { refresh, pause_on_secret, pause_on_fail, jsonl, yes, all, pane };
 const Command = enum {
     batch,
     live,
@@ -63,6 +63,7 @@ pub const Parsed = struct {
     export_jsonl: bool = false,
     assume_yes: bool = false,
     delete_all: bool = false,
+    record_pane: bool = false,
 };
 
 pub const ParseError = error{InvalidArguments};
@@ -120,6 +121,9 @@ pub fn parse(allocator: std.mem.Allocator, args: []const []const u8) !Parsed {
                     if (i >= args.len) return ParseError.InvalidArguments;
                     _ = std.fmt.parseInt(u64, args[i], 10) catch return ParseError.InvalidArguments;
                     parsed.live_refresh = args[i];
+                    i += 1;
+                } else if (std.mem.eql(u8, args[i], "--pane") or std.mem.eql(u8, args[i], "--split")) {
+                    parsed.record_pane = true;
                     i += 1;
                 } else if (!std.mem.startsWith(u8, args[i], "--") and parsed.recipe_url == null) {
                     parsed.recipe_url = args[i];
@@ -358,6 +362,7 @@ fn parseRecipeOption(arg: []const u8) ?RecipeOption {
     if (std.mem.eql(u8, arg, "--jsonl")) return .jsonl;
     if (std.mem.eql(u8, arg, "--yes") or std.mem.eql(u8, arg, "-y")) return .yes;
     if (std.mem.eql(u8, arg, "--all")) return .all;
+    if (std.mem.eql(u8, arg, "--pane") or std.mem.eql(u8, arg, "--split")) return .pane;
     return null;
 }
 
@@ -415,11 +420,11 @@ pub const help =
     \\  br [--json] [--session name] [--profile name] [--backend chrome|webkit] <command>
     \\  br batch
     \\  br live [url] [--refresh <ms>]
-    \\  br record <name> [url] [--refresh <ms>]
+    \\  br record <name> [url] [--refresh <ms>] [--pane]
     \\  br replay <name> [--pause-on-secret] [--pause-on-fail]
     \\  br recipes [delete <name>|delete --all|clear --yes]
     \\  br show <name>
-    \\  br patch <name> [url] [--refresh <ms>]
+    \\  br patch <name> [url] [--refresh <ms>] [--pane]
     \\  br export <name> --jsonl
     \\
     \\Core:
@@ -439,6 +444,7 @@ pub const help =
     \\
     \\Recipes:
     \\  record <name> [url]       teach br a workflow from live browsing
+    \\  record <name> --pane      record with an in-terminal log pane
     \\  replay <name>             run a saved workflow
     \\  recipes                   list saved workflows
     \\  recipes delete <name>     delete one saved workflow
@@ -469,12 +475,13 @@ test "parse rejects bad profile" {
 }
 
 test "parse record recipe" {
-    const args = [_][]const u8{ "br", "record", "yeswehack-login", "yeswehack.com/login", "--refresh", "250" };
+    const args = [_][]const u8{ "br", "record", "yeswehack-login", "yeswehack.com/login", "--refresh", "250", "--pane" };
     const parsed = try parse(std.testing.allocator, &args);
     try std.testing.expectEqual(Mode.record, parsed.mode);
     try std.testing.expectEqualStrings("yeswehack-login", parsed.recipe_name.?);
     try std.testing.expectEqualStrings("yeswehack.com/login", parsed.recipe_url.?);
     try std.testing.expectEqualStrings("250", parsed.live_refresh.?);
+    try std.testing.expect(parsed.record_pane);
 }
 
 test "parse replay recipe options" {

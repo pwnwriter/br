@@ -38,8 +38,8 @@ pub fn run(init: std.process.Init) !void {
         .session_close_all => try sendAdmin(gpa, io, p.request.json, "sessionCloseAll", null),
         .batch => try passthrough(io, &.{ bunExe(gpa, io), try workerScript(gpa, io, "client.ts"), "--batch", try ensureDaemon(gpa, io), p.request.session }),
         .live => try runLive(gpa, io, p.live_url, p.live_refresh),
-        .record => try runRecord(gpa, io, p.recipe_name.?, p.recipe_url, p.live_refresh, false),
-        .patch => try runRecord(gpa, io, p.recipe_name.?, p.recipe_url, p.live_refresh, true),
+        .record => try runRecord(gpa, io, p.recipe_name.?, p.recipe_url, p.live_refresh, false, p.record_pane),
+        .patch => try runRecord(gpa, io, p.recipe_name.?, p.recipe_url, p.live_refresh, true, p.record_pane),
         .replay => try runRecipe(gpa, io, p, "replay"),
         .recipes => try runRecipe(gpa, io, p, "list"),
         .recipes_clear => try runRecipe(gpa, io, p, "clear"),
@@ -95,7 +95,7 @@ fn runLive(gpa: Allocator, io: Io, url: ?[]const u8, refresh: ?[]const u8) !void
     try passthrough(io, argv.items);
 }
 
-fn runRecord(gpa: Allocator, io: Io, name: []const u8, url: ?[]const u8, refresh: ?[]const u8, append: bool) !void {
+fn runRecord(gpa: Allocator, io: Io, name: []const u8, url: ?[]const u8, refresh: ?[]const u8, append: bool, pane: bool) !void {
     const dir = try recipeDir(gpa);
     Io.Dir.cwd().createDirPath(io, dir) catch fatal(io, .internal_error, false, "could not create recipe directory\n");
     const path = try recipePath(gpa, name);
@@ -106,6 +106,7 @@ fn runRecord(gpa: Allocator, io: Io, name: []const u8, url: ?[]const u8, refresh
     if (url) |u| try argv.append(gpa, u);
     try argv.append(gpa, if (append) "--append-record" else "--record");
     try argv.append(gpa, path);
+    if (pane) try argv.append(gpa, "--pane");
     if (refresh) |r| {
         try argv.append(gpa, "--refresh");
         try argv.append(gpa, r);

@@ -18,6 +18,8 @@ let startUrl = DEFAULT_URL;
 let refreshMs = 0;
 let recordPath = "";
 let appendRecord = false;
+let recordPane = false;
+const recordLog: string[] = [];
 {
   const rest = Bun.argv.slice(2);
   for (let i = 0; i < rest.length; i += 1) {
@@ -32,6 +34,8 @@ let appendRecord = false;
         process.exit(2);
       }
       appendRecord = a === "--append-record";
+    } else if (a === "--pane" || a === "--split") {
+      recordPane = true;
     } else if (!a.startsWith("--")) {
       startUrl = a;
     }
@@ -504,7 +508,11 @@ function recordAction(action: Record<string, any>) {
     Object.entries(action).filter(([, value]) => value !== undefined),
   );
   clean.ts = new Date().toISOString();
-  appendFileSync(recordPath, JSON.stringify(clean) + "\n");
+  const line = JSON.stringify(clean);
+  appendFileSync(recordPath, line + "\n");
+  recordLog.push(line);
+  if (recordLog.length > 200) recordLog.shift();
+  if (recordPane) scheduleRender();
 }
 
 function scheduleRender() {
@@ -537,6 +545,7 @@ async function render() {
       promptAction,
       status,
       mode,
+      recordLines: recordPane ? recordLog : [],
     }),
   );
   process.stdout.write(frame);

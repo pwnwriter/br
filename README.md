@@ -25,18 +25,29 @@ Example Domain | https://example.com/
 @1 link  More information...
 ```
 
-***The below is me login into `yeswehack` and grabbing screenshots of available programs***.
-
-
-https://github.com/user-attachments/assets/17bab01b-c0f7-40d8-b296-d80429c8f14e
-
-
-
 That's the whole model:
 
 ```text
 browser  →  snapshot  →  @refs  →  actions
 ```
+
+## Demos
+
+Open, snapshot, click, capture:
+
+<video src=".github/assets/demo-open-snapshot-click.mp4" controls width="100%"></video>
+
+Live page snapshot:
+
+<video src=".github/assets/demo-live-snapshot.mp4" controls width="100%"></video>
+
+Form automation:
+
+<video src=".github/assets/demo-form-automation.mp4" controls width="100%"></video>
+
+Batch mode:
+
+<video src=".github/assets/demo-batch-mode.mp4" controls width="100%"></video>
 
 ## Why br?
 
@@ -199,7 +210,7 @@ JSONL
 Use `record` when a human should teach `br` a workflow once, then `replay` it later from an agent, script, or shell.
 
 ```bash
-br record yeswehack-login https://yeswehack.com/login
+br record yeswehack-login https://yeswehack.com/login --pane
 br recipes
 br show yeswehack-login
 br replay yeswehack-login --pause-on-secret --pause-on-fail
@@ -209,7 +220,7 @@ br recipes delete yeswehack-login
 br recipes delete --all
 ```
 
-Recipes are stored locally as JSONL in `~/.local/share/br/recipes`. A recorded live session captures opens, clicks, typed input, key presses, and scrolls exactly as entered, including login values. Clicks include a selector plus coordinate fallback so replay can use the DOM when possible and still preserve the original gesture.
+Recipes are stored locally as JSONL in `~/.local/share/br/recipes`. A recorded live session captures opens, clicks, typed input, key presses, and scrolls exactly as entered, including login values. Add `--pane` to `record` or `patch` to show the live JSONL log inside the terminal while browsing. Clicks include a selector plus coordinate fallback so replay can use the DOM when possible and still preserve the original gesture.
 
 ## Common commands
 
@@ -252,14 +263,14 @@ view                          resize <width> <height>  cookies    console
 close
 
 # recipes
-record <name> [url] [--refresh ms]
+record <name> [url] [--refresh ms] [--pane]
 replay <name> [--pause-on-secret] [--pause-on-fail]
 recipes
 recipes delete <name>
 recipes delete --all
 recipes clear --yes
 show <name>
-patch <name> [url] [--refresh ms]
+patch <name> [url] [--refresh ms] [--pane]
 export <name> --jsonl
 
 # admin

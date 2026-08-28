@@ -11,6 +11,7 @@ export function renderFrame(args: {
   promptAction: PromptAction;
   status: string;
   mode: "normal" | "insert";
+  recordLines?: string[];
 }) {
   const {
     tabs,
@@ -22,6 +23,7 @@ export function renderFrame(args: {
     promptAction,
     status,
     mode,
+    recordLines = [],
   } = args;
   const tab = tabs[active];
   return renderFrameAsync(
@@ -35,6 +37,7 @@ export function renderFrame(args: {
     promptAction,
     status,
     mode,
+    recordLines,
   );
 }
 
@@ -59,9 +62,13 @@ async function renderFrameAsync(
   promptAction: PromptAction,
   status: string,
   mode: "normal" | "insert",
+  recordLines: string[],
 ) {
   const chrome = `${ESC}[H${ESC}[2K${tabBar(tabs, active, cols)}`;
   const footer = `${ESC}[${rows + 2};1H${ESC}[2K${statusLine(tabs, active, cols, commandMode, status, mode)}`;
+  const logRows = recordLines.length > 0 ? Math.min(8, Math.max(4, Math.floor(rows * 0.32))) : 0;
+  const separatorRows = logRows > 0 ? 1 : 0;
+  const imageRows = Math.max(1, rows - logRows - separatorRows);
 
   // Command mode: blank the viewport under the prompt box and drop the image.
   if (commandMode) {
@@ -71,14 +78,14 @@ async function renderFrameAsync(
   }
 
   const id = nextImageId();
-  const image = await screenshotImage(view, cols, rows, id);
+  const image = await screenshotImage(view, cols, imageRows, id);
   // If the screenshot failed we get a blank viewport (no image drawn); in that
   // case don't retire the previous id — there is nothing new covering it.
   const drewImage = image.includes("_G");
   const retire =
     drewImage && prevImageId != null ? deleteImage(prevImageId) : "";
   if (drewImage) prevImageId = id;
-  return `${chrome}${ESC}[2;1H${image}${retire}${footer}`;
+  return `${chrome}${ESC}[2;1H${image}${retire}${renderRecordPane(recordLines, cols, imageRows, logRows)}${footer}`;
 }
 
 // A page that has not painted yet (or a blank view) can make screenshot throw.
@@ -168,6 +175,19 @@ function blankViewport(cols: number, rows: number) {
   let out = "";
   for (let row = 0; row < rows; row += 1)
     out += `${ESC}[${row + 2};1H${" ".repeat(cols)}`;
+  return out;
+}
+
+function renderRecordPane(lines: string[], cols: number, imageRows: number, logRows: number) {
+  if (logRows === 0) return "";
+  const top = 2 + imageRows;
+  const visible = lines.slice(-logRows);
+  const border = fit(" record log " + "-".repeat(cols), cols, "");
+  let out = `${ESC}[${top};1H${border}`;
+  for (let i = 0; i < logRows; i += 1) {
+    const line = visible[i] || "";
+    out += `${ESC}[${top + 1 + i};1H${fit(line, cols, "")}`;
+  }
   return out;
 }
 
