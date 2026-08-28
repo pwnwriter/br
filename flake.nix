@@ -46,6 +46,11 @@
                 break
               fi
             done
+            # Put the built br on PATH if it exists, so `br` works from anywhere
+            # in the repo without the ./zig-out/bin/ prefix. Run `zig build` first.
+            if [ -x "$PWD/zig-out/bin/br" ]; then
+              export PATH="$PWD/zig-out/bin:$PATH"
+            fi
             if command -v bun >/dev/null 2>&1; then
               echo "DevShell🚀: bun $(bun --version) ($(command -v bun))"
             else
