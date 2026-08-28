@@ -194,6 +194,23 @@ br batch <<'JSONL'
 JSONL
 ```
 
+## Recipes
+
+Use `record` when a human should teach `br` a workflow once, then `replay` it later from an agent, script, or shell.
+
+```bash
+br record yeswehack-login https://yeswehack.com/login
+br recipes
+br show yeswehack-login
+br replay yeswehack-login --pause-on-secret --pause-on-fail
+br patch yeswehack-login
+br export yeswehack-login --jsonl
+br recipes delete yeswehack-login
+br recipes delete --all
+```
+
+Recipes are stored locally as JSONL in `~/.local/share/br/recipes`. A recorded live session captures opens, clicks, typed input, key presses, and scrolls exactly as entered, including login values. Clicks include a selector plus coordinate fallback so replay can use the DOM when possible and still preserve the original gesture.
+
 ## Common commands
 
 | Command | What it does |
@@ -208,6 +225,14 @@ JSONL
 | `screenshot [path]` | Save a PNG |
 | `view` | Render the viewport inline (Kitty graphics) |
 | `live [url]` | Interactive terminal browser (for humans) |
+| `record <name> [url]` | Record a live workflow as a local recipe |
+| `replay <name>` | Replay a saved recipe |
+| `recipes` / `show <name>` | List or inspect saved recipes |
+| `recipes delete <name>` | Delete one saved recipe |
+| `recipes delete --all` | Delete all saved recipes |
+| `recipes clear --yes` | Delete all saved recipes |
+| `patch <name> [url]` | Append repaired live actions to a recipe |
+| `export <name> --jsonl` | Print a recipe for agents or scripts |
 
 <details>
 <summary><b>Full command reference</b></summary>
@@ -225,6 +250,17 @@ wait <selector|ms>            eval <javascript>
 screenshot [path] [--format png|jpeg|webp] [--quality 0-100]
 view                          resize <width> <height>  cookies    console
 close
+
+# recipes
+record <name> [url] [--refresh ms]
+replay <name> [--pause-on-secret] [--pause-on-fail]
+recipes
+recipes delete <name>
+recipes delete --all
+recipes clear --yes
+show <name>
+patch <name> [url] [--refresh ms]
+export <name> --jsonl
 
 # admin
 session list | close <name> | close-all

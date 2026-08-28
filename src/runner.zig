@@ -38,6 +38,14 @@ pub fn run(init: std.process.Init) !void {
         .session_close_all => try sendAdmin(gpa, io, p.request.json, "sessionCloseAll", null),
         .batch => try passthrough(io, &.{ bunExe(gpa, io), try workerScript(gpa, io, "client.ts"), "--batch", try ensureDaemon(gpa, io), p.request.session }),
         .live => try runLive(gpa, io, p.live_url, p.live_refresh),
+        .record => try runRecord(gpa, io, p.recipe_name.?, p.recipe_url, p.live_refresh, false),
+        .patch => try runRecord(gpa, io, p.recipe_name.?, p.recipe_url, p.live_refresh, true),
+        .replay => try runRecipe(gpa, io, p, "replay"),
+        .recipes => try runRecipe(gpa, io, p, "list"),
+        .recipes_clear => try runRecipe(gpa, io, p, "clear"),
+        .recipes_delete => try runRecipe(gpa, io, p, "delete"),
+        .show => try runRecipe(gpa, io, p, "show"),
+        .export_recipe => try runRecipe(gpa, io, p, "export"),
         .request => try runRequest(gpa, io, p.request),
     }
 }
@@ -84,6 +92,45 @@ fn runLive(gpa: Allocator, io: Io, url: ?[]const u8, refresh: ?[]const u8) !void
         try argv.append(gpa, "--refresh");
         try argv.append(gpa, r);
     }
+    try passthrough(io, argv.items);
+}
+
+fn runRecord(gpa: Allocator, io: Io, name: []const u8, url: ?[]const u8, refresh: ?[]const u8, append: bool) !void {
+    const dir = try recipeDir(gpa);
+    Io.Dir.cwd().createDirPath(io, dir) catch fatal(io, .internal_error, false, "could not create recipe directory\n");
+    const path = try recipePath(gpa, name);
+
+    var argv: std.ArrayList([]const u8) = .empty;
+    try argv.append(gpa, bunExe(gpa, io));
+    try argv.append(gpa, try workerScript(gpa, io, "live.ts"));
+    if (url) |u| try argv.append(gpa, u);
+    try argv.append(gpa, if (append) "--append-record" else "--record");
+    try argv.append(gpa, path);
+    if (refresh) |r| {
+        try argv.append(gpa, "--refresh");
+        try argv.append(gpa, r);
+    }
+    try passthrough(io, argv.items);
+}
+
+fn runRecipe(gpa: Allocator, io: Io, p: cli.Parsed, subcommand: []const u8) !void {
+    const dir = try recipeDir(gpa);
+    Io.Dir.cwd().createDirPath(io, dir) catch {};
+
+    var argv: std.ArrayList([]const u8) = .empty;
+    try argv.append(gpa, bunExe(gpa, io));
+    try argv.append(gpa, try workerScript(gpa, io, "recipe.ts"));
+    try argv.append(gpa, subcommand);
+    try argv.append(gpa, dir);
+    if (p.recipe_name) |name| try argv.append(gpa, name);
+    if (p.delete_all) try argv.append(gpa, "--all");
+    if (std.mem.eql(u8, subcommand, "replay")) {
+        try argv.append(gpa, try ensureDaemon(gpa, io));
+        try argv.append(gpa, p.request.session);
+        if (p.pause_on_secret) try argv.append(gpa, "--pause-on-secret");
+        if (p.pause_on_fail) try argv.append(gpa, "--pause-on-fail");
+    }
+    if (std.mem.eql(u8, subcommand, "export") and p.export_jsonl) try argv.append(gpa, "--jsonl");
     try passthrough(io, argv.items);
 }
 
@@ -197,6 +244,16 @@ fn workerDir(gpa: Allocator, io: Io) ![]const u8 {
         if (pathExists(io, shared)) return shared;
     } else |_| {}
     return "worker";
+}
+
+fn recipeDir(gpa: Allocator) ![]u8 {
+    if (std.c.getenv("BR_RECIPE_DIR")) |raw| return gpa.dupe(u8, std.mem.span(raw));
+    const home = std.c.getenv("HOME") orelse return error.HomeUnavailable;
+    return std.fs.path.join(gpa, &.{ std.mem.span(home), ".local", "share", "br", "recipes" });
+}
+
+fn recipePath(gpa: Allocator, name: []const u8) ![]u8 {
+    return std.fs.path.join(gpa, &.{ try recipeDir(gpa), try std.fmt.allocPrint(gpa, "{s}.jsonl", .{name}) });
 }
 
 fn pathExists(io: Io, path: []const u8) bool {

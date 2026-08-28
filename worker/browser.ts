@@ -113,7 +113,21 @@ export async function handle(req: Request) {
         );
       }
       case "click":
-        await view.click(await resolve(s, required(p.target, "target")));
+        if (typeof p.target === "string" && p.target.length > 0) {
+          try {
+            await view.click(await resolve(s, p.target));
+          } catch (err) {
+            if (Number.isFinite(p.x) && Number.isFinite(p.y)) {
+              await view.click(Number(p.x), Number(p.y));
+            } else {
+              throw err;
+            }
+          }
+        } else if (Number.isFinite(p.x) && Number.isFinite(p.y)) {
+          await view.click(Number(p.x), Number(p.y));
+        } else {
+          required(p.target, "target");
+        }
         return cliOk(req, { url: view.url }, "ok\n");
       case "fill": {
         const selector = await resolve(s, required(p.target, "target"));

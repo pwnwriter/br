@@ -1,3 +1,5 @@
+import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import {
   DEFAULT_URL,
   ESC,
@@ -14,6 +16,8 @@ import type { MouseInput, PromptAction, Tab } from "./live/types";
 // animations) updates instead of freezing. Floored to keep the CPU sane.
 let startUrl = DEFAULT_URL;
 let refreshMs = 0;
+let recordPath = "";
+let appendRecord = false;
 {
   const rest = Bun.argv.slice(2);
   for (let i = 0; i < rest.length; i += 1) {
@@ -21,10 +25,21 @@ let refreshMs = 0;
     if (a === "--refresh") {
       const v = parseInt(rest[++i] ?? "", 10);
       if (Number.isFinite(v) && v > 0) refreshMs = Math.max(30, v);
+    } else if (a === "--record" || a === "--append-record") {
+      recordPath = rest[++i] ?? "";
+      if (!recordPath || recordPath.startsWith("--")) {
+        console.error(`${a} requires a path`);
+        process.exit(2);
+      }
+      appendRecord = a === "--append-record";
     } else if (!a.startsWith("--")) {
       startUrl = a;
     }
   }
+}
+if (recordPath) {
+  mkdirSync(dirname(recordPath), { recursive: true });
+  if (!appendRecord) writeFileSync(recordPath, "");
 }
 
 // A real (screenshot-able) start page: a WebView left at about:blank cannot be
@@ -154,11 +169,13 @@ async function navigate(url: string) {
   const tab = tabs[active];
   mode = "normal"; // a fresh page starts without a focused field
   if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)) url = "https://" + url;
+  const requestedUrl = url;
   await locked(async () => {
     await tab.view.navigate(url);
     tab.url = tab.view.url;
     tab.title = tab.view.title;
   }).catch((err) => setStatus(`navigation failed: ${err?.message ?? err}`));
+  recordAction({ command: "open", url: tab.url || requestedUrl });
   // Re-render once now and again shortly: navigate can resolve before the page
   // has painted, so the first frame may still be blank.
   scheduleRender();
@@ -284,8 +301,11 @@ async function handleInsertKey(input: string) {
   if (input === "\r" || input === "\n") return press("Enter");
   if (input === "\x7f") return press("Backspace");
   if (input === "\t") return press("Tab");
-  if (input >= " ")
+  if (input >= " ") {
+    const meta = await activeElement();
     await locked(() => tabs[active].view.type(input)).catch(() => {});
+    recordAction({ command: "type", text: input, target: meta?.selector });
+  }
 }
 
 async function runCommand(command: string) {
@@ -298,7 +318,14 @@ async function runCommand(command: string) {
   else if (name === "reload" || name === "r") await tabs[active].view.reload();
   else if (name === "back") await tabs[active].view.goBack();
   else if (name === "forward") await tabs[active].view.goForward();
-  else if (name === "debug-input") {
+  else if (name === "snap" || name === "snapshot") {
+    recordAction({ command: "snapshot", compact: true });
+    setStatus("recorded snapshot");
+  } else if (name === "wait") {
+    const durationMs = Math.max(0, parseInt(arg || "250", 10) || 250);
+    recordAction({ command: "wait", durationMs });
+    setStatus(`recorded wait ${durationMs}ms`);
+  } else if (name === "debug-input") {
     debugInput = !debugInput;
     setStatus(debugInput ? "debug input on" : "debug input off");
   } else setStatus(`unknown command: ${name}`);
@@ -349,7 +376,15 @@ async function handleMouse(mouse: MouseInput) {
   if (mouse.down && mouse.button === 0) {
     const x = Math.round(((mouse.x - 1) / cols) * width);
     const y = Math.round(((mouse.y - 2) / rows) * height);
+    const target = await targetAtPoint(x, y);
     await locked(() => tabs[active].view.click(x, y)).catch(() => {});
+    recordAction({
+      command: "click",
+      target: target?.selector,
+      x,
+      y,
+      element: target,
+    });
     // Clicking into a text field should let you type immediately.
     if (mode === "normal" && (await focusIsEditable())) mode = "insert";
   }
@@ -375,6 +410,7 @@ async function focusIsEditable(): Promise<boolean> {
 
 async function press(key: string) {
   await locked(() => tabs[active].view.press(key)).catch(() => {});
+  recordAction({ command: "press", key });
 }
 
 async function scrollPage(deltaY: number) {
@@ -385,6 +421,90 @@ async function scrollPage(deltaY: number) {
       `window.scrollBy({ top: ${JSON.stringify(deltaY)}, left: 0, behavior: "instant" }); true`,
     );
   }).catch(() => {});
+  recordAction({ command: "scroll", amount: deltaY });
+}
+
+async function targetAtPoint(x: number, y: number) {
+  try {
+    return await locked(() =>
+      tabs[active].view.evaluate(
+        `(() => {
+          const el = document.elementFromPoint(${JSON.stringify(x)}, ${JSON.stringify(y)});
+          if (!el) return null;
+          const esc = CSS.escape;
+          const selector = (node) => {
+            if (node.id) return "#" + esc(node.id);
+            const parts = [];
+            for (let n = node; n && n.nodeType === 1 && n !== document.body; n = n.parentElement) {
+              let p = n.localName;
+              const name = n.getAttribute("name");
+              if (name) p += "[name=" + JSON.stringify(name) + "]";
+              else {
+                const parent = n.parentElement;
+                if (parent) {
+                  const same = [...parent.children].filter(c => c.localName === n.localName);
+                  if (same.length > 1) p += ":nth-of-type(" + ([...parent.children].filter(c => c.localName === n.localName).indexOf(n) + 1) + ")";
+                }
+              }
+              parts.unshift(p);
+            }
+            return parts.join(" > ");
+          };
+          const role = el.getAttribute("role") || el.localName;
+          const name = (el.getAttribute("aria-label") || el.innerText || el.getAttribute("placeholder") || el.value || "").trim().slice(0, 120);
+          return { selector: selector(el), role, name };
+        })()`,
+      ),
+    );
+  } catch {
+    return null;
+  }
+}
+
+async function activeElement() {
+  try {
+    return await locked(() =>
+      tabs[active].view.evaluate(
+        `(() => {
+          const el = document.activeElement;
+          if (!el || el === document.body) return null;
+          const esc = CSS.escape;
+          const selector = (node) => {
+            if (node.id) return "#" + esc(node.id);
+            const parts = [];
+            for (let n = node; n && n.nodeType === 1 && n !== document.body; n = n.parentElement) {
+              let p = n.localName;
+              const name = n.getAttribute("name");
+              if (name) p += "[name=" + JSON.stringify(name) + "]";
+              else {
+                const parent = n.parentElement;
+                if (parent) {
+                  const same = [...parent.children].filter(c => c.localName === n.localName);
+                  if (same.length > 1) p += ":nth-of-type(" + (same.indexOf(n) + 1) + ")";
+                }
+              }
+              parts.unshift(p);
+            }
+            return parts.join(" > ");
+          };
+          return {
+            selector: selector(el),
+          };
+        })()`,
+      ),
+    );
+  } catch {
+    return null;
+  }
+}
+
+function recordAction(action: Record<string, any>) {
+  if (!recordPath) return;
+  const clean = Object.fromEntries(
+    Object.entries(action).filter(([, value]) => value !== undefined),
+  );
+  clean.ts = new Date().toISOString();
+  appendFileSync(recordPath, JSON.stringify(clean) + "\n");
 }
 
 function scheduleRender() {
