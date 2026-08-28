@@ -108,8 +108,11 @@
   .term-body .ref { color: var(--teal); }
   .term-body .flag { color: var(--amber); }
   .term-body .str { color: var(--pink); }
+  .term-body .ok { color: #86efac; }
   .cur2 { display: inline-block; width: 0.55em; height: 1.05em; background: var(--teal); transform: translateY(0.16em); }
-  .term-vid { display: block; width: 100%; height: auto; background: var(--code-bg); }
+  @media (max-width: 520px) {
+    .term-body { padding: 16px 18px; font-size: 12.5px; line-height: 1.75; }
+  }
 
   section { padding: 76px 0; border-top: 1px solid var(--line); }
   .sec-label { font-size: 12.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
@@ -183,9 +186,20 @@
         <i></i><i></i><i></i>
         <span class="tt">br: login demo</span>
       </div>
-      <video class="term-vid" autoplay muted loop playsinline preload="metadata" poster="assets/br-login-poster.png">
-        <source src="assets/br-login.mp4" type="video/mp4">
-      </video>
+      <pre class="term-body" aria-label="br login demo transcript"><span class="pr">$</span> br open https://yeswehack.com/login
+<span class="ok">opened</span> https://yeswehack.com/login
+
+<span class="pr">$</span> br snap --compact
+Sign in | https://yeswehack.com/login
+<span class="ref">@1</span> input  Email
+<span class="ref">@2</span> input  Password
+<span class="ref">@3</span> button Sign in
+<span class="ref">@4</span> link   Forgot password?
+
+<span class="pr">$</span> br fill <span class="ref">@1</span> <span class="str">"hunter@yeswehack.com"</span>
+<span class="pr">$</span> br fill <span class="ref">@2</span> <span class="str">"$PASSWORD"</span>
+<span class="pr">$</span> br click <span class="ref">@3</span>
+<span class="ok">ok</span> navigated #dashboard<span class="cur2 blink"></span></pre>
     </div>
   </div>
 </header>
@@ -292,19 +306,5 @@ export BR_BUN="$(command -v bun)"
   </div>
 </footer>
 
-<script>
-  // Respect reduced-motion: don't autoplay the demo, offer controls instead.
-  (function () {
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      var v = document.querySelector(".term-vid");
-      if (v) {
-        v.removeAttribute("autoplay");
-        v.removeAttribute("loop");
-        v.setAttribute("controls", "");
-        if (v.pause) v.pause();
-      }
-    }
-  })();
-</script>
 </body>
 </html>
