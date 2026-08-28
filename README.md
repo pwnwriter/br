@@ -35,19 +35,20 @@ browser  →  snapshot  →  @refs  →  actions
 
 Open, snapshot, click, capture:
 
-<video src=".github/assets/demo-open-snapshot-click.mp4" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/cd44fc54-bd58-44f8-b9ea-4326bfa8e6ad" controls width="100%"></video>
+
 
 Live page snapshot:
 
-<video src=".github/assets/demo-live-snapshot.mp4" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/89d67d8e-b70a-4b8c-a71d-8530da974d43" controls width="100%"></video>
 
 Form automation:
 
-<video src=".github/assets/demo-form-automation.mp4" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/f0c8fbc3-a0d9-49a8-a9bc-ea14c2f7a074" controls width="100%"></video>
 
 Batch mode:
 
-<video src=".github/assets/demo-batch-mode.mp4" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/adebd823-9704-42f3-91b1-bd0db269c8ab" controls width="100%"></video>
 
 ## Why br?
 
