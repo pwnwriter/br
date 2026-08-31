@@ -66,7 +66,10 @@ async function renderFrameAsync(
 ) {
   const chrome = `${ESC}[H${ESC}[2K${tabBar(tabs, active, cols)}`;
   const footer = `${ESC}[${rows + 2};1H${ESC}[2K${statusLine(tabs, active, cols, commandMode, status, mode)}`;
-  const logRows = recordLines.length > 0 ? Math.min(8, Math.max(4, Math.floor(rows * 0.32))) : 0;
+  const logRows =
+    recordLines.length > 0
+      ? Math.min(8, Math.max(4, Math.floor(rows * 0.32)))
+      : 0;
   const separatorRows = logRows > 0 ? 1 : 0;
   const imageRows = Math.max(1, rows - logRows - separatorRows);
 
@@ -131,7 +134,7 @@ function statusLine(
     );
   const tab = tabs[active];
   return fit(
-    `${tab.url || "about:blank"}  |  q quit  o open  t tab  x close  i insert  j/k scroll`,
+    `${tab.url || "about:blank"}  |  q quit  o open  t tab  x close  i insert  a answer  j/k scroll`,
     cols,
     status,
   );
@@ -178,7 +181,12 @@ function blankViewport(cols: number, rows: number) {
   return out;
 }
 
-function renderRecordPane(lines: string[], cols: number, imageRows: number, logRows: number) {
+function renderRecordPane(
+  lines: string[],
+  cols: number,
+  imageRows: number,
+  logRows: number,
+) {
   if (logRows === 0) return "";
   const top = 2 + imageRows;
   const visible = lines.slice(-logRows);

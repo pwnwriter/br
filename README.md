@@ -251,6 +251,15 @@ Recipes are stored locally as JSONL in `~/.local/share/br/recipes`. A recorded l
 | `patch <name> [url]` | Append repaired live actions to a recipe |
 | `export <name> --jsonl` | Print a recipe for agents or scripts |
 
+> [!TIP]
+> In `br live`, press `a` to **AI-answer** the current page: multiple choice
+> *and* free text. `br` collects the clickable options and the writable fields,
+> hands them plus the page prose to a solver command, then clicks the right
+> options and writes the essay/short answers it gets back. The solver is
+> `$BR_SOLVER` (default `claude -p`); it receives the page on stdin and returns a
+> JSON plan `{"clicks":["@2"],"fills":[{"ref":"#0","text":"..."}]}`. Tune it with
+> `BR_SOLVER="claude -p --model haiku"` or `BR_SOLVER_TIMEOUT=60`.
+
 <details>
 <summary><b>Full command reference</b></summary>
 

@@ -83,6 +83,14 @@ br live [url]                             # interactive terminal browser (humans
 Agents: prefer `br screenshot <path>` for a visual result. `br view` / `br live`
 emit terminal graphics that an agent harness cannot read; do not parse them.
 
+In `br live`, press `a` to AI-answer the current page: multiple choice AND free
+text. br collects the clickable options (`@refs`) and the writable fields
+(`#refs`), hands them plus the page prose to a solver command, then clicks the
+right options and writes the essay/short answers it returns. The solver is
+`$BR_SOLVER` (default `claude -p`); it reads the page on stdin and returns a JSON
+plan `{"clicks":["@2"],"fills":[{"ref":"#0","text":"..."}]}`. `BR_SOLVER_TIMEOUT`
+(seconds, default 120) caps how long it may run.
+
 **Viewport / admin**
 ```bash
 br resize <width> <height>
